@@ -58,6 +58,24 @@ export async function startBackgroundLocation(onFix, onError) {
   });
   return watcherId;
 }
+/** One position fix, or null. `ask` = allowed to show the location permission prompt. */
+export function nativePositionOnce({ ask = true, timeout = 8000 } = {}) {
+  return new Promise((resolve) => {
+    let id = null, done = false;
+    const finish = (v) => {
+      if (done) return;
+      done = true; clearTimeout(timer); resolve(v);
+      // addWatcher may still be resolving its id; remove once it has one.
+      Promise.resolve(idP).then((wid) => wid && BackgroundGeolocation.removeWatcher({ id: wid }).catch(() => {}));
+    };
+    const timer = setTimeout(() => finish(null), timeout);
+    // No backgroundMessage: a foreground-only watcher, so this never asks for "Always".
+    const idP = BackgroundGeolocation.addWatcher({ requestPermissions: ask, stale: true }, (loc, err) => {
+      finish(err || !loc ? null : { lat: loc.latitude, lon: loc.longitude });
+    }).then((wid) => (id = wid)).catch(() => finish(null));
+  });
+}
+
 export async function stopBackgroundLocation() {
   if (watcherId) await BackgroundGeolocation.removeWatcher({ id: watcherId }).catch(() => {});
   watcherId = null;

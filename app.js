@@ -15,9 +15,20 @@ import { fx, kernel, settings, stats, saveStats, addMiles, checkBadges, badgesHt
 import { bingoCard, bingoSpot, bingoHtml, guessRound, satelliteHtml, cropOfTheDay, cropFacts, cropBlurb, countyFacts } from './games.js';
 import { SeasonLayer, season } from './season.js';
 import { showOnboarding, onboarded } from './onboarding.js';
-import { isNative, nativeSpeak, KeepAwake, StatusBar, startBackgroundLocation, scheduleDailyCrops, cancelDailyCrops } from './native.js';
+import { isNative, nativeSpeak, KeepAwake, StatusBar, App as NativeApp, startBackgroundLocation, stopBackgroundLocation, nativePositionOnce, scheduleDailyCrops, cancelDailyCrops } from './native.js';
 
 const $ = (id) => document.getElementById(id);
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** One position fix ({lat, lon}) or null. The app uses the native plugin, so iPhone users see
+ *  Apple's own location prompt instead of the web view's "localhost would like…" one. */
+function positionOnce({ ask = true, timeout = 8000, maximumAge = 0 } = {}) {
+  if (isNative) return nativePositionOnce({ ask, timeout });
+  return new Promise((r) => {
+    if (!navigator.geolocation) return r(null);
+    navigator.geolocation.getCurrentPosition((p) => r({ lat: p.coords.latitude, lon: p.coords.longitude }), () => r(null), { timeout, maximumAge });
+  });
+}
 const els = {
   status: $('status'), statusText: $('statusText'), strip: $('strip'), welcome: $('welcome'),
   startBtn: $('startBtn'), exploreBtn: $('exploreBtn'), voiceBtn: $('voiceBtn'), menuBtn: $('menuBtn'),
@@ -384,6 +395,7 @@ function follow(animate) {
 }
 
 function onFix(f) {
+  if (state.mode !== 'drive') return;   // a late fix after the drive ended
   state.prevFix = state.fix;
   state.fix = f;
   if (f.speed == null && state.prevFix) {
@@ -1105,11 +1117,14 @@ function openMenu() {
   const routes = loadRoutes();
   const t = state.trip;
   showSheet('menu', `<nav class="menu">
+    ${state.mode === 'drive'
+    ? '<button data-act="enddrive" class="menu-drive end"><b>🛑 End drive</b><span>Stop GPS and let the screen sleep</span></button>'
+    : '<button data-act="startdrive" class="menu-drive"><b>🚗 Start driving</b><span>Name the crops on your left and right</span></button>'}
     <button data-act="cotd"><b>⭐ Crop of the day</b><span>Today: ${cropEmoji(cropOfTheDay())} ${esc(prettyName(cropOfTheDay()))}</span></button>
     <button data-act="bingo"><b>🎯 Road-trip bingo</b><span>Today's card · spot 3 in a row</span></button>
     <button data-act="guess"><b>🧩 Guess the crop</b><span>Bird's-eye photo quiz${stats.guessBest ? ` · best streak ${stats.guessBest}` : ''}</span></button>
     <button data-act="lb"><b>🏆 Leaderboard</b><span>See how you stack up</span></button>
-    <button data-act="album"><b>🃏 Crop Cards & badges</b><span>${albumSummary(state.album).got} cards · ${albumSummary(state.album).states} state stamps</span></button>
+    <button data-act="album"><b>🃏 Crop Cards & badges</b><span>${plural(albumSummary(state.album).got, 'card')} · ${plural(albumSummary(state.album).states, 'state stamp')}</span></button>
     <button data-act="trip"><b>Trip log</b><span>${t.total >= 50 ? `${miles(t.total)} mi so far` : 'Miles of each crop along your drive'}</span></button>
     <button data-act="offline"><b>🧭 Plan a drive</b><span>What you'll pass on the way · save for offline</span></button>
     <button data-act="routes"><b>Saved routes</b><span>${routes.length ? `${routes.length} saved` : 'None yet'}</span></button>
@@ -1143,10 +1158,7 @@ function openOffline(prefillTo = '') {
     const fd = new FormData(e.target), out = $('routePlan');
     out.innerHTML = '<p class="predict">Finding the route…</p>';
     try {
-      const here = state.fix ? { lat: state.fix.lat, lon: state.fix.lon } : await new Promise((r) => {
-        if (!navigator.geolocation) return r(null);
-        navigator.geolocation.getCurrentPosition((p) => r({ lat: p.coords.latitude, lon: p.coords.longitude }), () => r(null), { timeout: 8000 });
-      });
+      const here = state.fix ? { lat: state.fix.lat, lon: state.fix.lon } : await positionOnce();
       const plan = await planRoute(fd.get('from').trim(), fd.get('to').trim(), here);
       routeLayer.clearLayers();
       const line = L.polyline(plan.coords, { color: '#ffffff', weight: 5, opacity: 0.9 }).addTo(routeLayer);
@@ -1248,6 +1260,8 @@ els.sheetBody.addEventListener('click', async (e) => {
     else if (n) toast('Use 2–18 letters, numbers or spaces');
   }
   else if (act === 'tour') { closeSheet(); showOnboarding(); }
+  else if (act === 'enddrive') { closeSheet(); stopDriving(); }
+  else if (act === 'startdrive') { closeSheet(); startDriving(); }
   else if (act === 'guess') openGuess();
   else if (act === 'guessed') answerGuess(+b.dataset.code, b);
   else if (act === 'cotd') openCropOfDay();
@@ -1255,7 +1269,7 @@ els.sheetBody.addEventListener('click', async (e) => {
   else if (act === 'sharealbum') {
     const cv = await albumCard(state.album);
     const sum = albumSummary(state.album);
-    await shareCanvas(cv, { title: 'My Spot-a-Crop album', text: `I've collected ${sum.got} crop cards and ${sum.states} state stamps on Spot-a-Crop! 🌽🫘🌾`, filename: 'spot-a-crop-album.png' });
+    await shareCanvas(cv, { title: 'My Spot-a-Crop album', text: `I've collected ${plural(sum.got, 'crop card')} and ${plural(sum.states, 'state stamp')} on Spot-a-Crop! 🌽🫘🌾`, filename: 'spot-a-crop-album.png' });
   }
   else if (act === 'menu') openMenu();
   else if (act === 'offline') openOffline();
@@ -1364,14 +1378,11 @@ function startDriving() {
   if (new URLSearchParams(location.search).has('sim')) return simulate();
   // iPhone app: location that keeps working with the screen locked (so voice keeps naming crops).
   if (isNative) {
-    startBackgroundLocation(onFix, (err) => {
-      setStatus(err?.code === 'NOT_AUTHORIZED' ? 'Location blocked' : 'No GPS signal', 'err');
-      if (err?.code === 'NOT_AUTHORIZED') renderStripMessage('Location is off for Spot-a-Crop. Turn it on in Settings › Spot-a-Crop › Location.', false);
-    }).catch(() => renderStripMessage('Couldn\'t start location.', false));
+    startNativeLocation();
     return;
   }
   if (!('geolocation' in navigator)) return renderStripMessage('This browser has no GPS access', false);
-  navigator.geolocation.watchPosition(
+  webWatch = navigator.geolocation.watchPosition(
     (p) => onFix({
       lat: p.coords.latitude, lon: p.coords.longitude, t: p.timestamp,
       speed: p.coords.speed, heading: p.coords.heading, acc: p.coords.accuracy,
@@ -1384,6 +1395,38 @@ function startDriving() {
   );
 }
 
+function startNativeLocation() {
+  startBackgroundLocation(onFix, (err) => {
+    setStatus(err?.code === 'NOT_AUTHORIZED' ? 'Location blocked' : 'No GPS signal', 'err');
+    if (err?.code === 'NOT_AUTHORIZED') renderStripMessage('Location is off for Spot-a-Crop. Turn it on in Settings › Spot-a-Crop › Location.', false);
+  }).catch(() => renderStripMessage('Couldn\'t start location.', false));
+}
+
+let webWatch = null, simTimer = null, nativePaused = false;
+// End the drive: stop GPS (including the screen-locked kind), let the screen sleep, keep the map where it is.
+function stopDriving() {
+  if (state.mode !== 'drive') return;
+  state.mode = 'explore';
+  document.body.classList.remove('driving');
+  if (isNative) { stopBackgroundLocation(); KeepAwake.allowSleep().catch(() => {}); }
+  if (webWatch != null) { navigator.geolocation.clearWatch(webWatch); webWatch = null; }
+  clearInterval(simTimer); simTimer = null;
+  wakeLock?.release?.().catch(() => {}); wakeLock = null;
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  state.following = false; els.recenter.hidden = true;
+  state.lastSpoken = {};
+  els.strip.hidden = true;
+  setStatus('Ready');
+  toast('Drive ended');
+}
+
+// iPhone app: with voice off nothing needs location while the app is in the background, so pause it.
+if (isNative) NativeApp.addListener('appStateChange', ({ isActive }) => {
+  if (state.mode !== 'drive') return;
+  if (!isActive && !state.voice) { stopBackgroundLocation(); nativePaused = true; }
+  else if (isActive && nativePaused) { nativePaused = false; startNativeLocation(); }
+});
+
 // center: jump there. stay: keep the current view (the user just tapped the map).
 function enterExplore(center, stay = false) {
   state.mode = 'explore';
@@ -1391,7 +1434,7 @@ function enterExplore(center, stay = false) {
   if (center) return map.setView(center, 15);
   if (stay) return;
   if (map.getZoom() < 8) map.setView([42.05, -93.7], 14);
-  navigator.geolocation?.getCurrentPosition((p) => map.setView([p.coords.latitude, p.coords.longitude], 15), () => {}, { timeout: 8000 });
+  positionOnce().then((p) => p && state.mode === 'explore' && map.setView([p.lat, p.lon], 15));
 }
 
 // Drive a fixed Iowa route for testing without a car (?sim).
@@ -1399,7 +1442,7 @@ function simulate() {
   const route = [[42.0500, -93.8000], [42.0500, -93.7000], [42.0960, -93.7000], [42.0960, -93.6200]];
   const speed = 29; // m/s ≈ 65 mph
   let leg = 0, pos = { lat: route[0][0], lon: route[0][1] };
-  setInterval(() => {
+  simTimer = setInterval(() => {
     let remain = speed;
     while (remain > 0 && leg < route.length - 1) {
       const to = { lat: route[leg + 1][0], lon: route[leg + 1][1] };
@@ -1480,10 +1523,16 @@ async function locateGeneral() {
     else map.setView([lat, lon], 7, { animate: false });
   };
   try {
-    const perm = await navigator.permissions?.query({ name: 'geolocation' });
-    if (perm?.state === 'granted') {
-      navigator.geolocation.getCurrentPosition((p) => go(p.coords.latitude, p.coords.longitude), () => {}, { timeout: 8000, maximumAge: 600000 });
-      return;
+    // Never prompt at launch: only use GPS if it's already allowed (the app asks natively without prompting).
+    if (isNative) {
+      const p = await positionOnce({ ask: false, timeout: 5000 });
+      if (p) return go(p.lat, p.lon);
+    } else {
+      const perm = await navigator.permissions?.query({ name: 'geolocation' });
+      if (perm?.state === 'granted') {
+        const p = await positionOnce({ maximumAge: 600000 });
+        if (p) return go(p.lat, p.lon);
+      }
     }
   } catch { /* Permissions API not supported: fall back to the network guess */ }
   try {
