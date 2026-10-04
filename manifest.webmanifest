@@ -1,6 +1,6 @@
 {
-  "name": "FieldSight",
-  "short_name": "FieldSight",
+  "name": "Spot-a-Crop",
+  "short_name": "Spot-a-Crop",
   "description": "See what crop is growing beside you as you drive. Collect crop cards, play road-trip bingo.",
   "start_url": "./",
   "display": "standalone",

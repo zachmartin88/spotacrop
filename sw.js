@@ -1,9 +1,9 @@
-// FieldSight service worker.
+// Spot-a-Crop service worker.
 //  - App shell: served from cache, refreshed in the background (works with no signal).
 //  - Crop tiles (the fixed 0.01° lookup tiles): cache-first. They never change, so anything fetched
 //    while driving is kept (recent cache, trimmed), and routes saved for offline live in their own
 //    cache until deleted.
-const SHELL = 'fs-shell-v17';
+const SHELL = 'fs-shell-v18';
 const RECENT = 'fs-tiles-recent';
 const SAVED = 'fs-tiles-saved';
 const RECENT_MAX = 5000;

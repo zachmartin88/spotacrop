@@ -1,4 +1,4 @@
-# FieldSight
+# Spot-a-Crop
 
 See what's growing in the fields beside you as you drive, anywhere in the lower 48.
 

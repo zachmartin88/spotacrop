@@ -12,7 +12,7 @@ const STEPS = [
       ['#ffc928', '🌽'], ['#22c55e', '🫘'], ['#fb7a24', '🌾'], ['#ffc928', '🌽'], ['#a78bfa', '🌿'], ['#22c55e', '🫘'],
     ].map(([b, e]) => tile(b, e)).join('')}</div>`,
     title: 'Hi! I’m Kernel 🌽',
-    text: 'FieldSight shows what’s growing in fields across the lower 48, straight from <b>this season’s satellite crop map</b>.',
+    text: 'Spot-a-Crop shows what’s growing in fields across the lower 48, straight from <b>this season’s satellite crop map</b>.',
   },
   {
     art: `<div class="ob-strip"><div><small>◂ LEFT</small><b><i style="background:#ffc928">🌽</i>Corn</b><em>LIVE</em></div><div><small>RIGHT ▸</small><b><i style="background:#22c55e">🫘</i>Soybeans</b><em>LIVE</em></div></div>
@@ -43,7 +43,7 @@ export function showOnboarding({ onDone } = {}) {
   let i = 0;
   const el = document.createElement('div');
   el.className = 'onboard';
-  el.innerHTML = `<div class="ob-card-wrap" role="dialog" aria-label="How FieldSight works">
+  el.innerHTML = `<div class="ob-card-wrap" role="dialog" aria-label="How Spot-a-Crop works">
       <button class="ob-skip">Skip</button>
       <div class="ob-stage"></div>
       <div class="ob-dots">${STEPS.map(() => '<i></i>').join('')}</div>

@@ -43,7 +43,7 @@ export async function nativeShareImage(canvas, { title, text, filename }) {
 let watcherId = null;
 export async function startBackgroundLocation(onFix, onError) {
   watcherId = await BackgroundGeolocation.addWatcher({
-    backgroundTitle: 'FieldSight is reading the fields',
+    backgroundTitle: 'Spot-a-Crop is reading the fields',
     backgroundMessage: 'Naming the crops beside the road as you drive.',
     // stale: true so a parked phone gets its cached fix right away instead of waiting to move 10 m.
     requestPermissions: true, stale: true, distanceFilter: 10,

@@ -5,7 +5,7 @@
 // and draws every field as its own vector polygon, so fields stay crisp while zooming and can be
 // hovered, tapped, highlighted, and filtered by crop.
 //
-// CropTiles (zoomed out): the same map as tiles, recolored into FieldSight's palette so colors match
+// CropTiles (zoomed out): the same map as tiles, recolored into Spot-a-Crop's palette so colors match
 // at every zoom.
 import { rgbToCode, isAg, prettyName, wmsFetch, proxyUrl, slowNet } from './data.js';
 import { cropColor, cropEmoji, cropLabel, categoryOf } from './palette.js';

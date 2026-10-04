@@ -1,8 +1,8 @@
 // "What's ahead": scan a planned route and summarize what you'll drive past.
 //
-// FieldSight can't read the route inside Google Maps or Apple Maps (they don't share it with other
+// Spot-a-Crop can't read the route inside Google Maps or Apple Maps (they don't share it with other
 // apps), so you plan the drive here: type a destination, or on Android share a place from Google Maps
-// to FieldSight. The route comes from OSRM (the same free OpenStreetMap router the offline feature uses).
+// to Spot-a-Crop. The route comes from OSRM (the same free OpenStreetMap router the offline feature uses).
 import { quickRead, isAg } from './data.js';
 
 const STEP_M = 800;   // one reading every ~half mile

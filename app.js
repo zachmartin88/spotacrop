@@ -532,7 +532,7 @@ async function openLeaderboard() {
     </div>
     <div class="lb-break"><span>🃏 ${t.cards} cards ×10</span><span>🗺️ ${t.states} states ×20</span><span>🏅 ${t.badges} badges ×15</span><span>🛣️ ${t.miles} miles</span></div>`;
   showSheet('lb', `<article class="detail"><div class="lbl">🏆 Leaderboard</div>${me}<div id="lbList"><p class="predict">Loading the board…</p></div></article>`);
-  if (!proxyUrl) { $('lbList').innerHTML = '<p class="predict">The leaderboard needs the FieldSight server.</p>'; return; }
+  if (!proxyUrl) { $('lbList').innerHTML = '<p class="predict">The leaderboard needs the Spot-a-Crop server.</p>'; return; }
   await fetch(`${proxyUrl}/lb`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: deviceId(), name: nickname(), ...t }) }).catch(() => null);
   const j = await fetch(`${proxyUrl}/lb?id=${encodeURIComponent(deviceId())}`).then((r) => r.json()).catch(() => null);
   const el = $('lbList');
@@ -962,7 +962,7 @@ async function openShareCard() {
   info.place = await placeName(info.lat, info.lon);
   const cv = await fieldCard(info);
   state.shareCanvas = cv;
-  state.shareText = `${cropEmoji(info.code)} ${prettyName(info.code)}${info.acres ? `, ${info.acres} acres` : ''}${info.place ? ` in ${info.place.county}, ${info.place.state}` : ''}. Spotted with FieldSight.`;
+  state.shareText = `${cropEmoji(info.code)} ${prettyName(info.code)}${info.acres ? `, ${info.acres} acres` : ''}${info.place ? ` in ${info.place.county}, ${info.place.state}` : ''}. Spotted with Spot-a-Crop 🌽`;
   if (state.sheet !== 'share') return;
   showSheet('share', `<article class="detail"><div class="lbl">Share this field</div>
     <img class="card-preview" src="${cv.toDataURL('image/png')}" alt="Share card">
@@ -1114,14 +1114,14 @@ function openMenu() {
     <button data-act="offline"><b>🧭 Plan a drive</b><span>What you'll pass on the way · save for offline</span></button>
     <button data-act="routes"><b>Saved routes</b><span>${routes.length ? `${routes.length} saved` : 'None yet'}</span></button>
     <button data-act="about"><b>About the data</b><span>Where each reading comes from</span></button>
-    <button data-act="tour"><b>📖 How FieldSight works</b><span>Replay the quick walkthrough</span></button>
+    <button data-act="tour"><b>📖 How Spot-a-Crop works</b><span>Replay the quick walkthrough</span></button>
     <div class="toggles">
       <button data-act="tog" data-k="sound" class="${settings.sound ? 'on' : ''}">🔊 Sounds</button>
       <button data-act="tog" data-k="buzz" class="${settings.buzz ? 'on' : ''}">📳 Buzz</button>
       <button data-act="tog" data-k="mascot" class="${settings.mascot ? 'on' : ''}">🌽 Kernel</button>
     </div>
     ${isNative ? `<button data-act="remind"><b>🔔 Daily crop reminder</b><span>${localGet('fs.remind') === '1' ? 'On · 9 am, tap to turn off' : 'Off · a new crop to find every morning'}</span></button>` : ''}
-    <p class="menu-foot"><a href="https://zachmartin88.github.io/fieldsight/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="https://zachmartin88.github.io/fieldsight/support.html" target="_blank" rel="noopener">Help & feedback</a></p>
+    <p class="menu-foot"><a href="https://zachmartin88.github.io/spotacrop/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="https://zachmartin88.github.io/spotacrop/support.html" target="_blank" rel="noopener">Help & feedback</a></p>
   </nav>`);
 }
 els.menuBtn.addEventListener('click', () => (state.sheet === 'menu' ? closeSheet() : openMenu()));
@@ -1131,7 +1131,7 @@ let downloadCtl = null;
 // Plan a drive: route → forecast of what you'll pass (ribbon + totals) → start it, or save it offline.
 function openOffline(prefillTo = '') {
   showSheet('offline', `<article class="detail"><div class="lbl">Plan a drive</div>
-    <p class="predict">See what you'll drive past, then start the drive or save it for no-signal stretches. On Android you can also share a place from Google Maps to FieldSight.</p>
+    <p class="predict">See what you'll drive past, then start the drive or save it for no-signal stretches. On Android you can also share a place from Google Maps to Spot-a-Crop.</p>
     <form class="route-form" id="routeForm">
       <label>From<input name="from" placeholder="Current location" autocomplete="off"></label>
       <label>To<input name="to" placeholder="City, town or address" required autocomplete="off" value="${esc(prefillTo)}"></label>
@@ -1238,7 +1238,7 @@ els.sheetBody.addEventListener('click', async (e) => {
   else if (act === 'remind') {
     if (localGet('fs.remind') === '1') { await cancelDailyCrops(); localSet('fs.remind', '0'); toast('🔕 Daily reminder off'); }
     else if (await scheduleDailyCrops(cropOfTheDay, (c) => `${cropEmoji(c)} ${prettyName(c)}`)) { localSet('fs.remind', '1'); toast('🔔 You\'ll get a new crop every morning at 9'); }
-    else toast('Notifications are off for FieldSight in Settings');
+    else toast('Notifications are off for Spot-a-Crop in Settings');
     openMenu();
   }
   else if (act === 'lb') openLeaderboard();
@@ -1255,7 +1255,7 @@ els.sheetBody.addEventListener('click', async (e) => {
   else if (act === 'sharealbum') {
     const cv = await albumCard(state.album);
     const sum = albumSummary(state.album);
-    await shareCanvas(cv, { title: 'My FieldSight album', text: `I've collected ${sum.got} crop cards and ${sum.states} state stamps on FieldSight! 🌽🫘🌾`, filename: 'fieldsight-album.png' });
+    await shareCanvas(cv, { title: 'My Spot-a-Crop album', text: `I've collected ${sum.got} crop cards and ${sum.states} state stamps on Spot-a-Crop! 🌽🫘🌾`, filename: 'spot-a-crop-album.png' });
   }
   else if (act === 'menu') openMenu();
   else if (act === 'offline') openOffline();
@@ -1263,8 +1263,8 @@ els.sheetBody.addEventListener('click', async (e) => {
   else if (act === 'about') { closeSheet(); els.about.showModal(); }
   else if (act === 'close') closeSheet();
   else if (act === 'sharebingo') {
-    const t = `🎯 My FieldSight road-trip bingo card today. Can you spot them all? 🌽🫘🌾`;
-    if (navigator.share) navigator.share({ title: 'FieldSight bingo', text: t, url: location.origin + location.pathname }).catch(() => {});
+    const t = `🎯 My Spot-a-Crop road-trip bingo card today. Can you spot them all? 🌽🫘🌾`;
+    if (navigator.share) navigator.share({ title: 'Spot-a-Crop bingo', text: t, url: location.origin + location.pathname }).catch(() => {});
     else { navigator.clipboard?.writeText(`${t} ${location.origin}${location.pathname}`); toast('Copied to clipboard'); }
   }
   else if (act === 'beltspot') { closeSheet(); spotlight(+b.dataset.code); }
@@ -1278,7 +1278,7 @@ els.sheetBody.addEventListener('click', async (e) => {
   else if (act === 'share') openShareCard();
   else if (act === 'parcel') showParcel(+b.dataset.lat, +b.dataset.lng, b);
   else if (act === 'sharego') {
-    const r = await shareCanvas(state.shareCanvas, { title: 'FieldSight', text: state.shareText, filename: 'fieldsight.png' });
+    const r = await shareCanvas(state.shareCanvas, { title: 'Spot-a-Crop', text: state.shareText, filename: 'spot-a-crop.png' });
     if (r === 'downloaded') b.textContent = 'Saved to your downloads ✓';
   }
   else if (act === 'zoomto') { closeSheet(); map.setView([+b.dataset.lat, +b.dataset.lng], +b.dataset.z); }
@@ -1366,7 +1366,7 @@ function startDriving() {
   if (isNative) {
     startBackgroundLocation(onFix, (err) => {
       setStatus(err?.code === 'NOT_AUTHORIZED' ? 'Location blocked' : 'No GPS signal', 'err');
-      if (err?.code === 'NOT_AUTHORIZED') renderStripMessage('Location is off for FieldSight. Turn it on in Settings › FieldSight › Location.', false);
+      if (err?.code === 'NOT_AUTHORIZED') renderStripMessage('Location is off for Spot-a-Crop. Turn it on in Settings › Spot-a-Crop › Location.', false);
     }).catch(() => renderStripMessage('Couldn\'t start location.', false));
     return;
   }
@@ -1454,7 +1454,7 @@ if (new URLSearchParams(location.search).has('debug')) Object.assign(window, { f
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
-// Shared from another app (Android share sheet → FieldSight, e.g. a place in Google Maps):
+// Shared from another app (Android share sheet → Spot-a-Crop, e.g. a place in Google Maps):
 // open the planner with that place as the destination.
 {
   const q = new URLSearchParams(location.search);

@@ -1,4 +1,4 @@
-// FieldSight proxy: caches crop-map tiles from the GMU CSISS map servers and serves USDA crop
+// Spot-a-Crop proxy: caches crop-map tiles from the GMU CSISS map servers and serves USDA crop
 // progress. No dependencies; run with Node 22+.
 //
 //   GET /health
@@ -61,7 +61,7 @@ async function upstream(url, ms = 20000) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
   try {
-    const res = await fetch(url, { signal: ctl.signal, headers: { 'User-Agent': 'FieldSight-proxy/1.0' } });
+    const res = await fetch(url, { signal: ctl.signal, headers: { 'User-Agent': 'Spot-a-Crop-proxy/1.0' } });
     return { status: res.status, type: res.headers.get('content-type') || 'application/octet-stream', body: Buffer.from(await res.arrayBuffer()) };
   } finally { clearTimeout(t); }
 }
@@ -230,4 +230,4 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(out.status, { ...cors, 'Content-Type': out.type, ...(out.headers || {}) });
   res.end(out.body);
 });
-server.listen(PORT, () => console.log(`FieldSight proxy on :${PORT}${QUICKSTATS_KEY ? '' : ' (crop progress off: no QUICKSTATS_KEY)'}`));
+server.listen(PORT, () => console.log(`Spot-a-Crop proxy on :${PORT}${QUICKSTATS_KEY ? '' : ' (crop progress off: no QUICKSTATS_KEY)'}`));

@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>FieldSight</string>
+	<string>Spot-a-Crop</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,9 +27,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>While you drive with the screen locked, FieldSight uses your location to keep naming the crops beside the road out loud.</string>
+	<string>While you drive with the screen locked, Spot-a-Crop uses your location to keep naming the crops beside the road out loud.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>FieldSight uses your location to show what crops are growing in the fields beside the road.</string>
+	<string>Spot-a-Crop uses your location to show what crops are growing in the fields beside the road.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

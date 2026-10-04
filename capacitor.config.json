@@ -1,11 +1,10 @@
 {
-  "appId": "com.zmrtn.fieldsight",
-  "appName": "FieldSight",
+  "appId": "com.zmrtn.spotacrop",
+  "appName": "Spot-a-Crop",
   "webDir": "www",
   "ios": {
     "contentInset": "never",
-    "backgroundColor": "#0d0f12",
-    "scheme": "FieldSight"
+    "backgroundColor": "#0d0f12"
   },
   "plugins": {
     "SplashScreen": {

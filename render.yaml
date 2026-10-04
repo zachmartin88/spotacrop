@@ -1,4 +1,4 @@
-# Render Blueprint: the FieldSight proxy (caches crop-map tiles, serves USDA crop progress).
+# Render Blueprint: the Spot-a-Crop proxy (caches crop-map tiles, serves USDA crop progress).
 # In Render: New ▸ Blueprint ▸ pick this repository.
 services:
   - type: web

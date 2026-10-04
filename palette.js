@@ -1,4 +1,4 @@
-// FieldSight's own crop colors and icons. The official USDA palette (cdl-classes.js) is still used
+// Spot-a-Crop's own crop colors and icons. The official USDA palette (cdl-classes.js) is still used
 // to *read* the map servers' images; this palette is what people see. Bright, friendly, and chosen
 // so neighbouring crops that are common together (corn / soybeans / wheat / hay) look clearly different.
 import { prettyName, isAg } from './data.js';

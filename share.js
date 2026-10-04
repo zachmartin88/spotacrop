@@ -6,7 +6,7 @@ import { parseColor } from './fields.js';
 import { isNative, nativeShareImage } from './native.js';
 
 const W = 1080, H = 1350;
-const SITE = 'zachmartin88.github.io/fieldsight';
+const SITE = 'zachmartin88.github.io/spotacrop';
 const FONT = 'Inter, -apple-system, "Segoe UI", Roboto, sans-serif';
 
 // ---------- where is this? (county lookup from the bundled outlines) ----------
@@ -100,7 +100,7 @@ export async function fieldCard(info) {
 
   // Header.
   ctx.textBaseline = 'alphabetic';
-  ctx.font = `800 40px ${FONT}`; ctx.fillStyle = '#e8c170'; ctx.fillText('FieldSight', 80, 120);
+  ctx.font = `800 40px ${FONT}`; ctx.fillStyle = '#e8c170'; ctx.fillText('Spot-a-Crop', 80, 120);
   const tag = info.tier === 'live' ? `✓ Live satellite · ${info.liveLabel}` : 'Spotted on the road';
   ctx.font = `700 28px ${FONT}`;
   const tw = ctx.measureText(tag).width + 44;
@@ -197,10 +197,10 @@ export async function albumCard(album) {
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   const sum = albumSummary(album);
   ctx.textBaseline = 'alphabetic';
-  ctx.font = `800 40px ${FONT}`; ctx.fillStyle = '#e8c170'; ctx.fillText('FieldSight', 80, 120);
+  ctx.font = `800 40px ${FONT}`; ctx.fillStyle = '#e8c170'; ctx.fillText('Spot-a-Crop', 80, 120);
   ctx.font = `900 96px ${FONT}`; ctx.fillStyle = '#fff'; ctx.fillText('My Crop Cards', 80, 240);
   ctx.font = `700 40px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,.8)';
-  ctx.fillText(`${sum.got} of ${sum.total} collected · ${sum.states} states`, 80, 310);
+  ctx.fillText(`${sum.got} of ${sum.total} collected · ${sum.states} ${sum.states === 1 ? 'state' : 'states'}`, 80, 310);
 
   const got = SETS.flatMap((s) => s.codes).filter((c) => album.cards[c]);
   const cols = 6, cw = (W - 160 - 20 * (cols - 1)) / cols, ch = cw * 1.25;
