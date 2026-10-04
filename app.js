@@ -1121,6 +1121,7 @@ function openMenu() {
       <button data-act="tog" data-k="mascot" class="${settings.mascot ? 'on' : ''}">🌽 Kernel</button>
     </div>
     ${isNative ? `<button data-act="remind"><b>🔔 Daily crop reminder</b><span>${localGet('fs.remind') === '1' ? 'On · 9 am, tap to turn off' : 'Off · a new crop to find every morning'}</span></button>` : ''}
+    <p class="menu-foot"><a href="https://zachmartin88.github.io/fieldsight/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="https://zachmartin88.github.io/fieldsight/support.html" target="_blank" rel="noopener">Help & feedback</a></p>
   </nav>`);
 }
 els.menuBtn.addEventListener('click', () => (state.sheet === 'menu' ? closeSheet() : openMenu()));

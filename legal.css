@@ -1,0 +1,16 @@
+/* Privacy and support pages. Same dark + gold look as the app. */
+:root { --bg: #0d0f12; --panel: #151920; --line: #2a303a; --text: #eef0f3; --muted: #8d95a3; --gold: #e8c170; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 680px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 16px 64px; }
+.home { display: inline-flex; align-items: center; gap: 8px; color: var(--gold); font-weight: 700; text-decoration: none; }
+.home img { width: 24px; height: 24px; }
+h1 { font-size: 30px; line-height: 1.2; margin: 24px 0 4px; }
+h2 { font-size: 19px; margin: 32px 0 6px; color: var(--gold); }
+h3 { font-size: 16px; margin: 20px 0 2px; }
+p, li { color: #cfd4dc; }
+.date { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+.lead { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; color: var(--text); }
+a { color: var(--gold); }
+ul { padding-left: 20px; }
+.foot { margin-top: 40px; border-top: 1px solid var(--line); padding-top: 16px; }
