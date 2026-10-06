@@ -162,6 +162,17 @@ function setCrop(which) {
   belts.setEnabled(!!src);
   syncCropZoom();
 }
+// The little nudge at the top of the map. One fun line per visit, so it doesn't flicker.
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const HINT_FAR = pick([
+  '👆 Tap around · 🔍 zoom in to meet the fields',
+  'Psst… zoom in, the corn is waving 🌽👋',
+  '🔍 Zoom in for fields · 👆 tap for the scoop',
+  'Get closer, the fields are friendly 🌾',
+  'Tap around 👆 · zoom in, it gets juicy 🍉',
+]);
+const HINT_NEAR = 'Sooo close! One more zoom 🔍🌽';
+
 // Zoom tiers: state/county summaries (≤10), crop-colored detail (11), individual fields (≥12).
 function syncCropZoom() {
   const z = map.getZoom();
@@ -169,7 +180,7 @@ function syncCropZoom() {
   const detail = false;
   if (crop.tiles) (detail ? crop.tiles.addTo(map) : map.removeLayer(crop.tiles));
   els.mapHint.hidden = !(z < FIELD_MIN_ZOOM && crop.which !== 'none');
-  els.mapHint.textContent = z <= COUNTY_MAX_ZOOM ? 'Tap a state or county · zoom in for fields' : 'Zoom in a little more for fields';
+  els.mapHint.textContent = z <= COUNTY_MAX_ZOOM ? HINT_FAR : HINT_NEAR;
   if (z < FIELD_MIN_ZOOM) renderLegend(regions.statsInView());
 }
 

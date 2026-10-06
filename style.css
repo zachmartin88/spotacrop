@@ -42,7 +42,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--line-soft); box-shadow: 0 8px 24px -12px rgba(0,0,0,.7);
 }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: 0.01em; font-size: 16px; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: 0.01em; font-size: 16px; white-space: nowrap; flex: none; }
 .brand img { width: 26px; height: 26px; border-radius: 7px; }
 .brand span { color: var(--gold); }
 .status {
