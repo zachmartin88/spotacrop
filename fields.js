@@ -492,7 +492,7 @@ export class FieldLayer {
 
     // Fewer, well-spaced labels when zoomed out; more as you zoom in.
     const zl = map.getZoom(), maxLabels = zl <= 13 ? 8 : zl === 14 ? 12 : 16, gap = zl <= 13 ? 24 : 14;
-    const taken = [];
+    const taken = [], shown = new Set();
     for (const id of cands) {
       if (taken.length >= maxLabels) break;
       const i = bestI[id], x = i % g.W, y = (i - x) / g.W;
@@ -504,15 +504,19 @@ export class FieldLayer {
       if (r[0] < 6 || r[1] < inset.top + 6 || r[2] > size.x - 6 || r[3] > size.y - inset.bottom - 6) continue;
       if (taken.some((t) => r[0] < t[2] + gap && r[2] > t[0] - gap && r[1] < t[3] + gap && r[3] > t[1] - gap)) continue;
       taken.push(r);
+      // Labels are redrawn on every pan; only ones that weren't there before pop in.
+      const lkey = `${code}:${Math.round(lat * 400)}:${Math.round(lng * 400)}`;
+      shown.add(lkey);
       L.marker([lat, lng], {
         pane: this.labelPane, interactive: false, keyboard: false,
         // Leaflet positions the outer element with a transform, so centering goes on an inner one.
         icon: L.divIcon({
           className: 'field-label-anchor', iconSize: [0, 0],
-          html: `<span class="field-label${id === this.selected ? ' sel' : ''}" style="--c:${cropColor(code)}"><span class="emo">${cropEmoji(code)}</span>${name}</span>`,
+          html: `<span class="field-label${id === this.selected ? ' sel' : ''}${this.prevLabels?.has(lkey) ? '' : ' fresh'}" style="--c:${cropColor(code)}"><span class="emo">${cropEmoji(code)}</span>${name}</span>`,
         }),
       }).addTo(this.labels);
     }
+    this.prevLabels = shown;
   }
 
   pxAcres() {

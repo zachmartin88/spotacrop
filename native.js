@@ -26,12 +26,6 @@ export function nativeHaptic(kind) {
   return (type === 'impact' ? Haptics.impact({ style }) : Haptics.notification({ type: style })).catch(() => {});
 }
 
-// ---------- speech (keeps talking with the screen locked) ----------
-export function nativeSpeak(text) {
-  TextToSpeech.stop().catch(() => {});
-  return TextToSpeech.speak({ text, lang: 'en-US', rate: 1.0, pitch: 1.0, volume: 1.0, category: 'playback' }).catch(() => {});
-}
-
 // ---------- share an image ----------
 export async function nativeShareImage(canvas, { title, text, filename }) {
   const data = canvas.toDataURL('image/png').split(',')[1];

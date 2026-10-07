@@ -15,7 +15,8 @@ import { fx, kernel, settings, stats, saveStats, addMiles, checkBadges, badgesHt
 import { bingoCard, bingoSpot, bingoHtml, guessRound, satelliteHtml, cropOfTheDay, cropFacts, cropBlurb, countyFacts } from './games.js';
 import { SeasonLayer, season } from './season.js';
 import { showOnboarding, onboarded } from './onboarding.js';
-import { isNative, nativeSpeak, KeepAwake, StatusBar, App as NativeApp, startBackgroundLocation, stopBackgroundLocation, nativePositionOnce, scheduleDailyCrops, cancelDailyCrops } from './native.js';
+import { prefs as voicePrefs, STYLES, RATES, listVoices, say, stop as stopVoice, phrase, hello, sample } from './voice.js';
+import { isNative, KeepAwake, StatusBar, App as NativeApp, startBackgroundLocation, stopBackgroundLocation, nativePositionOnce, scheduleDailyCrops, cancelDailyCrops } from './native.js';
 
 const $ = (id) => document.getElementById(id);
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -537,14 +538,19 @@ function myTotals() {
   const sum = albumSummary(state.album);
   return { cards: sum.got, states: sum.states, badges: Object.keys(earned).length, miles: Math.floor(stats.totalMiles) };
 }
-let lbTimer = null;
+let lbTimer = null, lbLastSent = 0;
 function submitScore(now = false) {
   if (!proxyUrl) return;
   clearTimeout(lbTimer);
-  lbTimer = setTimeout(() => fetch(`${proxyUrl}/lb`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: deviceId(), name: nickname(), ...myTotals() }),
-  }).then((r) => r.json()).catch(() => null), now ? 0 : 4000);
+  // The server turns away a second send within 5 s, so never send closer together than 6 s.
+  const wait = Math.max(now ? 0 : 4000, lbLastSent + 6000 - Date.now());
+  lbTimer = setTimeout(() => {
+    lbLastSent = Date.now();
+    fetch(`${proxyUrl}/lb`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: deviceId(), name: nickname(), ...myTotals() }),
+    }).then((r) => r.json()).catch(() => null);
+  }, wait);
 }
 
 async function openLeaderboard() {
@@ -556,7 +562,10 @@ async function openLeaderboard() {
     <div class="lb-break"><span>🃏 ${t.cards} cards ×10</span><span>🗺️ ${t.states} states ×20</span><span>🏅 ${t.badges} badges ×15</span><span>🛣️ ${t.miles} miles</span></div>`;
   showSheet('lb', `<article class="detail"><div class="lbl">🏆 Leaderboard</div>${me}<div id="lbList"><p class="predict">Loading the board…</p></div></article>`);
   if (!proxyUrl) { $('lbList').innerHTML = '<p class="predict">The leaderboard needs the Spot-a-Crop server.</p>'; return; }
-  await fetch(`${proxyUrl}/lb`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: deviceId(), name: nickname(), ...t }) }).catch(() => null);
+  if (Date.now() - lbLastSent > 6000) {
+    clearTimeout(lbTimer); lbLastSent = Date.now();
+    await fetch(`${proxyUrl}/lb`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: deviceId(), name: nickname(), ...t }) }).catch(() => null);
+  }
   const j = await fetch(`${proxyUrl}/lb?id=${encodeURIComponent(deviceId())}`).then((r) => r.json()).catch(() => null);
   const el = $('lbList');
   if (!el) return;
@@ -607,8 +616,13 @@ function tierTag(s, layers) {
   }
 }
 
+let stripPrev = {};
 function renderStrip(res) {
   const keys = Object.keys(res.sides);
+  // Which sides changed crop since last time (they get a little pop, and a banjo note while driving).
+  const changed = new Set(keys.filter((k) => stripPrev[k] !== undefined && stripPrev[k] !== res.sides[k].code));
+  stripPrev = Object.fromEntries(keys.map((k) => [k, res.sides[k].code]));
+  if (state.mode === 'drive') for (const k of changed) if (k === 'left' || k === 'right') fx(k);
   els.strip.hidden = false;
   els.strip.classList.toggle('single', keys.length === 1);
   els.strip.innerHTML = keys.map((k) => {
@@ -619,7 +633,7 @@ function renderStrip(res) {
     const a = res.ahead?.[k];
     const then = a && a.code != null && a.code !== s.code && isAg(a.code)
       ? `<div class="then">then ${cropEmoji(a.code)} ${esc(prettyName(a.code))}</div>` : '';
-    return `<div class="side-cell tier-${s.tier}">
+    return `<div class="side-cell tier-${s.tier}${changed.has(k) ? ' changed' : ''}">
       <div class="lbl"><span>${label}</span>${tierTag(s, res.layers)}</div>
       <div class="name"><span class="chipdot" style="--c:${cropColor(s.code)}">${cropEmoji(s.code) || '·'}</span><span>${esc(name)}</span></div>
       ${then}
@@ -792,6 +806,8 @@ function showSheet(kind, html, two = false) {
   if (kind !== 'belt') belts?.setActive(null);
   els.sheetBody.className = `sheet-body${two ? ' two' : ''}`;
   els.sheetBody.innerHTML = html;
+  if (els.sheet.hidden || els.sheet.classList.contains('closing')) fx('open');
+  els.sheet.classList.remove('closing');
   els.sheet.hidden = false;
   document.body.classList.add('sheet-open');
   fields.relabel();
@@ -809,7 +825,10 @@ function closeSheet() {
   const wasTap = state.sheet === 'tap';
   state.sheet = null;
   state.tapSeq++;
-  els.sheet.hidden = true;
+  // Slide out, then hide (unless something reopened it meanwhile).
+  els.sheet.classList.add('closing');
+  fx('close');
+  setTimeout(() => { if (!state.sheet) els.sheet.hidden = true; els.sheet.classList.remove('closing'); }, 170);
   document.body.classList.remove('sheet-open');
   if (tapPin) { map.removeLayer(tapPin); tapPin = null; }
   routeLayer.clearLayers();
@@ -996,7 +1015,16 @@ async function openShareCard() {
 
 const pinIcon = L.divIcon({ className: 'tap-pin', iconSize: [16, 16], iconAnchor: [8, 8] });
 
+function ripple(lat, lon) {
+  const p = map.latLngToContainerPoint([lat, lon]), el = document.createElement('div');
+  el.className = 'ripple';
+  el.style.left = `${p.x}px`; el.style.top = `${p.y}px`;
+  map.getContainer().appendChild(el);
+  setTimeout(() => el.remove(), 700);
+}
+
 async function onMapTap(lat, lon) {
+  ripple(lat, lon);
   if (state.mode === 'idle') enterExplore(null, true);
   const field = fields.fieldAt(lat, lon);
   if (field) { fx('pop'); stats.fieldsTapped++; saveStats(); rewardBadges(); }
@@ -1131,6 +1159,7 @@ function openMenu() {
     ${state.mode === 'drive'
     ? '<button data-act="enddrive" class="menu-drive end"><b>🛑 End drive</b><span>Stop GPS and let the screen sleep</span></button>'
     : '<button data-act="startdrive" class="menu-drive"><b>🚗 Start driving</b><span>Name the crops on your left and right</span></button>'}
+    <button data-act="voice"><b>🗣️ Voice & style</b><span>${esc(voiceSummary())}</span></button>
     <button data-act="cotd"><b>⭐ Crop of the day</b><span>Today: ${cropEmoji(cropOfTheDay())} ${esc(prettyName(cropOfTheDay()))}</span></button>
     <button data-act="bingo"><b>🎯 Road-trip bingo</b><span>Today's card · spot 3 in a row</span></button>
     <button data-act="guess"><b>🧩 Guess the crop</b><span>Bird's-eye photo quiz${stats.guessBest ? ` · best streak ${stats.guessBest}` : ''}</span></button>
@@ -1271,6 +1300,12 @@ els.sheetBody.addEventListener('click', async (e) => {
     else if (n) toast('Use 2–18 letters, numbers or spaces');
   }
   else if (act === 'tour') { closeSheet(); showOnboarding(); }
+  else if (act === 'voice') openVoice();
+  else if (act === 'vtoggle') { setVoice(!state.voice); b.classList.toggle('on', state.voice); b.querySelector('b').textContent = state.voice ? 'On' : 'Off'; }
+  else if (act === 'vstyle') { voicePrefs.set('style', b.dataset.v); markPicked(b); fx('pop'); say(sample()); }
+  else if (act === 'vrate') { voicePrefs.set('rate', +b.dataset.v); markPicked(b); say(sample()); }
+  else if (act === 'vpick') { voicePrefs.set('uri', b.dataset.v); markPicked(b); fx('pop'); say(sample()); }
+  else if (act === 'vtest') { b.classList.remove('talk'); void b.offsetWidth; b.classList.add('talk'); say(sample()); }
   else if (act === 'enddrive') { closeSheet(); stopDriving(); }
   else if (act === 'startdrive') { closeSheet(); startDriving(); }
   else if (act === 'guess') openGuess();
@@ -1325,33 +1360,28 @@ els.sheetBody.addEventListener('click', async (e) => {
 
 function speak(text) {
   if (!state.voice) return;
-  if (isNative) { nativeSpeak(text); return; }   // keeps talking with the screen locked
-  if (!('speechSynthesis' in window)) return;
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = 1.02;
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+  say(text);   // the app's native speech keeps talking with the screen locked
 }
 
 // Only speak crops and pasture, and only when a side changes. Not every farmstead or tree line.
 function announce(res) {
-  const parts = [];
+  const items = [];
   for (const [side, s] of Object.entries(res.sides)) {
     if (s.code == null || !isAg(s.code)) continue;
     const name = prettyName(s.code);
     if (state.lastSpoken[side] === name) continue;
     state.lastSpoken[side] = name;
-    parts.push(`${SIDE_NAME[side]}: ${name}${s.tier === 'annual' ? ', probably' : ''}.`);
+    items.push({ side, code: s.code, probably: s.tier === 'annual' });
   }
-  if (parts.length) speak(parts.join(' '));
+  if (items.length) speak(phrase(items));
 }
 
 function setVoice(on) {
   state.voice = on;
   localSet('fs.voice', on ? '1' : '0');
   els.voiceBtn.setAttribute('aria-pressed', String(on));
-  if (on) { state.lastSpoken = {}; speak('Voice on.'); }
-  else if ('speechSynthesis' in window) speechSynthesis.cancel();
+  if (on) { state.lastSpoken = {}; speak(hello()); }
+  else stopVoice();
 }
 els.voiceBtn.addEventListener('click', () => setVoice(!state.voice));
 els.voiceBtn.setAttribute('aria-pressed', String(state.voice));
@@ -1406,6 +1436,48 @@ function startDriving() {
   );
 }
 
+// ---------- voice picker ----------
+
+function voiceSummary() {
+  const st = STYLES.find((x) => x.id === voicePrefs.style) || STYLES[1];
+  const name = voicePrefs.uri ? (cachedVoiceName || 'Custom voice') : 'Phone voice';
+  return `${state.voice ? 'On' : 'Off'} · ${name} · ${st.emoji} ${st.name}`;
+}
+let cachedVoiceName = null;
+listVoices().then((vs) => { cachedVoiceName = vs.find((v) => v.uri === voicePrefs.uri)?.name || null; }).catch(() => {});
+
+function markPicked(b) {
+  (b.dataset.act === 'vpick' ? els.sheetBody : b.parentElement).querySelectorAll(`[data-act="${b.dataset.act}"].picked`).forEach((x) => x.classList.remove('picked'));
+  b.classList.add('picked');
+  if (b.dataset.act === 'vpick') cachedVoiceName = b.dataset.name || null;
+}
+
+async function openVoice() {
+  const voices = await listVoices();
+  const groups = [['farm', '🚜 Farm crew'], ['regular', '🗣️ Regular voices'], ['silly', '🤪 Silly voices']];
+  const row = (v) => `<button data-act="vpick" data-v="${esc(v.uri)}" data-name="${esc(v.name)}" class="vrow${v.uri === voicePrefs.uri ? ' picked' : ''}">
+      <span class="vemo">${v.emoji}</span><b>${esc(v.name)}</b><small>${esc(v.blurb)}</small></button>`;
+  const list = voices.length
+    ? groups.map(([g, title]) => {
+      const vs = voices.filter((v) => v.group === g);
+      return vs.length ? `<div class="vgroup"><div class="lbl">${title}</div><div class="vlist">${g === 'regular'
+        ? `<button data-act="vpick" data-v="" data-name="" class="vrow${!voicePrefs.uri ? ' picked' : ''}"><span class="vemo">📱</span><b>Phone default</b><small>Whatever your phone uses</small></button>` : ''}${vs.map(row).join('')}</div></div>` : '';
+    }).join('')
+    : '<p class="predict">This browser doesn\'t list its voices. The Spot-a-Crop iPhone app has a whole farm crew to pick from.</p>';
+  showSheet('voice', `<article class="detail voice-sheet"><div class="lbl">🗣️ Voice & style</div>
+    <div class="vtop">
+      <button data-act="vtoggle" class="vswitch${state.voice ? ' on' : ''}"><span>Read crops out loud</span><b>${state.voice ? 'On' : 'Off'}</b></button>
+      <button data-act="vtest" class="vtest">🔊 Hear it</button>
+    </div>
+    <div class="lbl">How it talks</div>
+    <div class="vchips">${STYLES.map((x) => `<button data-act="vstyle" data-v="${x.id}" class="vchip${x.id === voicePrefs.style ? ' picked' : ''}">${x.emoji} ${x.name}</button>`).join('')}</div>
+    <div class="lbl">Speed</div>
+    <div class="vchips">${RATES.map((r) => `<button data-act="vrate" data-v="${r.v}" class="vchip${r.v === voicePrefs.rate ? ' picked' : ''}">${r.name}</button>`).join('')}</div>
+    ${list}
+    <p class="predict">Tap a voice to hear it. More voices: iPhone Settings › Accessibility › Spoken Content › Voices.</p>
+  </article>`);
+}
+
 function startNativeLocation() {
   startBackgroundLocation(onFix, (err) => {
     setStatus(err?.code === 'NOT_AUTHORIZED' ? 'Location blocked' : 'No GPS signal', 'err');
@@ -1423,12 +1495,13 @@ function stopDriving() {
   if (webWatch != null) { navigator.geolocation.clearWatch(webWatch); webWatch = null; }
   clearInterval(simTimer); simTimer = null;
   wakeLock?.release?.().catch(() => {}); wakeLock = null;
-  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  stopVoice();
   state.following = false; els.recenter.hidden = true;
   state.lastSpoken = {};
   els.strip.hidden = true;
   setStatus('Ready');
-  toast('Drive ended');
+  fx('bye');
+  toast('Peas out! ✌️ Drive ended');
 }
 
 // iPhone app: with voice off nothing needs location while the app is in the background, so pause it.
@@ -1483,7 +1556,13 @@ if (isNative) {
   const [, sn] = season(), cotd = cropOfTheDay();
   $('welcomeChips').innerHTML = `<button class="wchip" data-w="cotd">⭐ Crop of the day: ${cropEmoji(cotd)} ${esc(prettyName(cotd))}</button><span class="wchip plain">${sn.emoji} ${sn.name}</span>`;
   $('welcomeChips').addEventListener('click', (e) => { if (e.target.closest('[data-w=cotd]')) { enterExplore(null, true); openCropOfDay(); } });
-  // First launch: the walkthrough. After that, Kernel says hi once a day.
+  // Startup: the controls slide in with a little banjo hello. Browsers only allow sound after a first tap.
+document.body.classList.add('booting');
+setTimeout(() => document.body.classList.remove('booting'), 1400);
+if (isNative) setTimeout(() => fx('hello'), 250);
+else addEventListener('pointerdown', () => fx('hello'), { once: true });
+
+// First launch: the walkthrough. After that, Kernel says hi once a day.
   const greet = () => {
     if (localGet('fs.kernelDay') === new Date().toDateString()) return;
     localSet('fs.kernelDay', new Date().toDateString());
