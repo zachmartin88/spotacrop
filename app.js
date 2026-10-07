@@ -622,7 +622,7 @@ function renderStrip(res) {
   // Which sides changed crop since last time (they get a little pop, and a banjo note while driving).
   const changed = new Set(keys.filter((k) => stripPrev[k] !== undefined && stripPrev[k] !== res.sides[k].code));
   stripPrev = Object.fromEntries(keys.map((k) => [k, res.sides[k].code]));
-  if (state.mode === 'drive') for (const k of changed) if (k === 'left' || k === 'right') fx(k);
+  if (state.mode === 'drive' && settings.notes) for (const k of changed) if (k === 'left' || k === 'right') fx(k);
   els.strip.hidden = false;
   els.strip.classList.toggle('single', keys.length === 1);
   els.strip.innerHTML = keys.map((k) => {
@@ -1174,6 +1174,7 @@ function openMenu() {
       <button data-act="tog" data-k="sound" class="${settings.sound ? 'on' : ''}">🔊 Sounds</button>
       <button data-act="tog" data-k="buzz" class="${settings.buzz ? 'on' : ''}">📳 Buzz</button>
       <button data-act="tog" data-k="mascot" class="${settings.mascot ? 'on' : ''}">🌽 Kernel</button>
+      <button data-act="tog" data-k="notes" class="${settings.notes ? 'on' : ''}" title="A banjo note when a crop changes while driving">🪕 Crop notes</button>
     </div>
     ${isNative ? `<button data-act="remind"><b>🔔 Daily crop reminder</b><span>${localGet('fs.remind') === '1' ? 'On · 9 am, tap to turn off' : 'Off · a new crop to find every morning'}</span></button>` : ''}
     <p class="menu-foot"><a href="https://zachmartin88.github.io/spotacrop/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="https://zachmartin88.github.io/spotacrop/support.html" target="_blank" rel="noopener">Help & feedback</a></p>

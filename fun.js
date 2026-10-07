@@ -13,6 +13,7 @@ export const settings = {
   sound: get('fs.sound', true),
   buzz: get('fs.buzz', true),
   mascot: get('fs.mascot', true),
+  notes: get('fs.notes', false),   // a banjo note at every crop change while driving (opt-in: it adds up fast)
   set(k, v) { this[k] = v; put(`fs.${k}`, v); },
 };
 
