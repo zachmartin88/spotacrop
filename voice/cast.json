@@ -26,6 +26,15 @@
    "version": "cd039b1a7d",
    "mb": 20.1,
    "lines": 1101
+  },
+  {
+   "id": "kernel",
+   "name": "Kernel",
+   "emoji": "🌽",
+   "blurb": "The mascot, a corn kid",
+   "version": "ba0ed24290",
+   "mb": 18.9,
+   "lines": 1099
   }
  ]
 }
