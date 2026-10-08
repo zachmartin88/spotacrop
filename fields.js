@@ -98,9 +98,12 @@ function recolor(r, g, b, a) {
 // ---------- official USDA field boundaries (Crop Sequence Boundaries) ----------
 // Each field polygon carries its acreage and the crop grown each year from the USDA crop maps.
 // The national service is tried first; state copies cover for it when it's down.
+// Minnesota's copy of the 2024 edition first (newer); everywhere else, USDA's national 2022 edition.
+// (USDA took the 2024 national service down; field lines rarely move, and newer crop years come from
+// the satellite maps, so the 2022 outlines are still the right shapes.)
 const CSB_SOURCES = [
-  { name: 'USDA', url: 'https://pdi.scinet.usda.gov/hosting/rest/services/Hosted/Crop_Sequence_Boundaries_2024/FeatureServer/2', bbox: [-125, 24, -66, 50] },
   { name: 'Minnesota', url: 'https://services3.arcgis.com/g6eV2CrSSwCZj8Mc/arcgis/rest/services/NASS_Crop_Sequence_Boundaries_2024/FeatureServer/0', bbox: [-97.3, 43.4, -90.2, 49.4] },
+  { name: 'USDA', url: 'https://pdi.scinet.usda.gov/hosting/rest/services/Hosted/Crop_Sequence_Boundary_2022/FeatureServer/0', bbox: [-125, 24, -66, 50] },
 ];
 const csbDownUntil = new Map();
 
@@ -135,10 +138,11 @@ async function fetchCSB(minx, miny, maxx, maxy, tol) {
   return null;
 }
 
-// Year-by-year crop codes from a CSB feature's CDLyyyy attributes.
+// Year-by-year crop codes from a CSB feature's attributes.
 function csbHistory(props) {
+  // Editions name the years CDL2021 or r21.
   return Object.entries(props)
-    .map(([k, v]) => [k.match(/^cdl(\d{4})$/i)?.[1], v])
+    .map(([k, v]) => { const m = k.match(/^cdl(\d{4})$/i) || k.match(/^r(\d{2})$/i); return [m ? (m[1].length === 2 ? `20${m[1]}` : m[1]) : null, v]; })
     .filter(([y, v]) => y && v != null && +v > 0)
     .map(([y, v]) => ({ year: +y, code: +v }))
     .sort((a, b) => a.year - b.year);

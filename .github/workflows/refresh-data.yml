@@ -58,12 +58,12 @@ jobs:
           git push
           echo "Published refreshed data from $(jq -r '.source' data/meta.json)." >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Announce USDA field boundaries are back
+      - name: Announce newer USDA field boundaries
         if: steps.check.outputs.csb == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          title="USDA field boundaries are back online"
+          title="Newer USDA field boundaries available"
           if [ -z "$(gh issue list --state all --search "$title in:title" --json number --jq '.[0].number')" ]; then
-            gh issue create --title "$title" --body "USDA's national Crop Sequence Boundaries service is responding again. Spot-a-Crop uses it automatically (official field outlines from zoom 13, everywhere, not just Minnesota). Nothing to do. Close this once you've had a look."
+            gh issue create --title "$title" --body "USDA published a newer national Crop Sequence Boundaries edition than the 2022 one Spot-a-Crop uses. Point CSB_SOURCES in fields.js and CSB_URL in proxy/server.js at it (field names may differ, see csbHistory)."
           fi

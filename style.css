@@ -20,6 +20,11 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
+/* The app never scrolls as a page: the map and panels scroll themselves. Pinning the page stops iOS from
+   rubber-banding or nudging the top bar up under the notch. */
+html, body { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; touch-action: manipulation; }
+/* iOS zooms the whole page into text fields under 16px; keep them at 16px so it never does. */
+input, select, textarea { font-size: 16px; }
 body {
   background: var(--bg); color: var(--text); overflow: hidden;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -42,7 +47,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--line-soft); box-shadow: 0 8px 24px -12px rgba(0,0,0,.7);
 }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: 0.01em; font-size: 16px; white-space: nowrap; flex: none; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: 0.01em; font-size: 16px; white-space: nowrap; flex: none;
+  background: none; border: 0; padding: 0; color: inherit; }
 .brand img { width: 26px; height: 26px; border-radius: 7px; }
 .brand span { color: var(--gold); }
 .status {
@@ -801,3 +807,16 @@ body.booting .map-ctl, body.booting .legend { animation: rise .55s .12s cubic-be
 .vcard .vbar b { display: block; height: 100%; width: 0; background: var(--gold); transition: width .2s; }
 .vcard.loading { opacity: .85; }
 .vchip:disabled { opacity: .4; }
+
+/* ---------- collapsible top bar: tap the icon to tuck it to the side ---------- */
+.bar { transition: padding .2s ease; }
+body.bar-min .hud .bar { position: fixed; left: 0; top: calc(var(--safe-top) + 34vh); padding: 7px 7px 7px 5px; gap: 0;
+  border-radius: 0 14px 14px 0; border-left: 0; animation: tuck .35s cubic-bezier(.2, 1.3, .4, 1); }
+body.bar-min .bar > :not(.brand), body.bar-min .brand span { display: none; }
+body.bar-min .brand img { width: 30px; height: 30px; border-radius: 9px; }
+body.bar-min.driving .brand img { box-shadow: 0 0 0 2px var(--gold); }   /* still driving: gold ring */
+body:not(.bar-min) .hud .bar { animation: untuck .3s cubic-bezier(.2, 1.3, .4, 1); }
+@keyframes tuck { from { transform: translateX(-100%); } }
+@keyframes untuck { from { transform: translateY(-30px); opacity: 0; } }
+/* Collapsed, the map hint slides up into the bar's old spot. */
+body.bar-min .map-hint { top: calc(var(--safe-top) + var(--gutter)); }

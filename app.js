@@ -1410,6 +1410,19 @@ function setVoice(on) {
   else { stopVoice(); talk.hush(); }
 }
 els.voiceBtn.addEventListener('click', () => setVoice(!state.voice));
+
+// Tap the icon to tuck the top bar away to the side; tap again to bring it back.
+const brandBtn = $('brandBtn');
+function setBarMin(min) {
+  document.body.classList.toggle('bar-min', min);
+  brandBtn.setAttribute('aria-expanded', String(!min));
+  brandBtn.setAttribute('aria-label', min ? 'Show the top bar' : 'Hide the top bar');
+  localSet('fs.barMin', min ? '1' : '0');
+}
+brandBtn.addEventListener('click', () => { fx('flip'); setBarMin(!document.body.classList.contains('bar-min')); });
+setBarMin(localGet('fs.barMin') === '1');
+// Belt and braces: if anything ever scrolls the page, put it back.
+addEventListener('scroll', () => { if (scrollY || scrollX) scrollTo(0, 0); }, { passive: true });
 els.voiceBtn.setAttribute('aria-pressed', String(state.voice));
 
 // ---------- modes ----------

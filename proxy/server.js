@@ -90,7 +90,7 @@ async function wms(service, params) {
 }
 
 // USDA Crop Sequence Boundaries (official field outlines). Only query parameters are forwarded.
-const CSB_URL = 'https://pdi.scinet.usda.gov/hosting/rest/services/Hosted/Crop_Sequence_Boundaries_2024/FeatureServer/2/query';
+const CSB_URL = 'https://pdi.scinet.usda.gov/hosting/rest/services/Hosted/Crop_Sequence_Boundary_2022/FeatureServer/0/query';
 const CSB_PARAMS = ['where', 'geometry', 'geometryType', 'inSR', 'spatialRel', 'outFields', 'outSR', 'f', 'resultOffset', 'resultRecordCount', 'geometryPrecision', 'maxAllowableOffset'];
 
 async function csb(params) {
