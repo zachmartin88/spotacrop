@@ -538,7 +538,8 @@ def build(chars=CHARS):
                     add(char, f'crop:{code}:{side}', t.replace('{X}', cap(x)).replace('{x}', x).replace('{pun}', pun))
             for line in FLAVOR.get(char, {}).get(code, []):
                 add(char, f'flavor:{code}', line)
-            add(char, f'name:{code}', f'{name}.' if char == 'sam' else f'{name}!')
+            # One-word lines come out garbled, so names are said in a short sentence.
+            add(char, f'name:{code}', f"It's {name.lower() if name[:1].isupper() and name not in ('Christmas trees',) else name}{'.' if char == 'sam' else '!'}")
         for spot, by in SPOTS.items():
             for line in by.get(char, []):
                 add(char, f'spot:{spot}', line)

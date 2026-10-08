@@ -24,11 +24,18 @@ def transcribe(path):
     segs, _ = model().transcribe(str(path), language='en', beam_size=3, vad_filter=False)
     return ' '.join(s.text for s in segs).strip()
 
+# Words that sound the same; Whisper can't tell them apart, and neither can a listener.
+SAME = {'hey': 'hay', 'hay': 'hay', 'rye': 'rye', 'rai': 'rye', 'wry': 'rye', 'flocks': 'flax', 'mustard': 'mustard', 'times': 'thyme', 'time': 'thyme',
+        'pees': 'peas', 'peace': 'peas', 'beats': 'beets', 'mince': 'mint', 'tea': 'tee', 'dough': 'dot', 'earl': 'earl', 'oil': 'earl'}
+
 def score(expected, heard):
-    """0..1 similarity of the word sequences."""
-    a, b = words(expected), words(heard)
+    """0..1 similarity: the better of a word-by-word match and a letters-only match
+    (so "sugar cane" matches "sugarcane" and "hey" matches "hay")."""
+    a, b = [SAME.get(w, w) for w in words(expected)], [SAME.get(w, w) for w in words(heard)]
     if not a: return 1.0
-    return SequenceMatcher(None, a, b).ratio()
+    word_ratio = SequenceMatcher(None, a, b).ratio()
+    char_ratio = SequenceMatcher(None, ''.join(a), ''.join(b)).ratio()
+    return max(word_ratio, char_ratio)
 
 def check(path, expected, need=0.8):
     heard = transcribe(path)

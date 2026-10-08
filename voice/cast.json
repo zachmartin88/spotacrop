@@ -1,0 +1,22 @@
+{
+ "cast": [
+  {
+   "id": "earl",
+   "name": "Earl",
+   "emoji": "🤠",
+   "blurb": "Southern farmer",
+   "version": "cf5a913d62",
+   "mb": 18.7,
+   "lines": 1118
+  },
+  {
+   "id": "dot",
+   "name": "Dot",
+   "emoji": "👵",
+   "blurb": "Sweet grandma",
+   "version": "7f68d769c2",
+   "mb": 18.9,
+   "lines": 1103
+  }
+ ]
+}
