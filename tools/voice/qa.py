@@ -1,6 +1,6 @@
 # Listen back to recorded lines with Whisper and flag any that don't say what the script says.
 # Used by gen_lines.py; also runnable on a folder:  qa.py <clips.json>
-import re, sys, json
+import os, re, sys, json
 from difflib import SequenceMatcher
 
 _model = None
@@ -8,7 +8,7 @@ def model():
     global _model
     if _model is None:
         from faster_whisper import WhisperModel
-        _model = WhisperModel('small.en', device='cpu', compute_type='int8')
+        _model = WhisperModel(os.environ.get('QA_MODEL', 'base.en'), device='cpu', compute_type='int8', cpu_threads=4)
     return _model
 
 NUM = {'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',

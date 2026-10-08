@@ -1,0 +1,8 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;width:1366px;height:1366px;overflow:hidden;background:#0d0f12}
+svg{display:block;width:100%;height:100%}</style></head><body><div id="a" style="position:relative;width:1366px;height:1366px"></div><script src="final-lib.js"></script><script>
+const svg = ART.real(false).replace('<svg viewBox="0 0 100 100">', '<svg viewBox="0 0 100 100" preserveAspectRatio="none">');
+document.getElementById('a').innerHTML = svg + `<div style="position:absolute;left:0;right:0;top:30%;text-align:center;font:900 76px -apple-system,Inter,sans-serif;color:#1c3a5c;letter-spacing:.01em;text-shadow:0 2px 0 rgba(255,255,255,.6)">Spot-a-Crop</div>`;
+// Move the car to the center so it survives the phone crop.
+const car = [...document.querySelectorAll('g')].find(g => (g.getAttribute('transform') || '').startsWith('translate(72 88)'));
+if (car) car.setAttribute('transform', car.getAttribute('transform').replace('translate(72 88)', 'translate(50 88)'));
+</script></body></html>

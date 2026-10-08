@@ -1,0 +1,122 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0b0d10;color:#eef0f3;font-family:Inter,sans-serif}
+.page{width:1000px;padding:36px 36px 44px;box-sizing:border-box}
+h1{margin:0 0 4px;font-size:34px;font-weight:900;color:#e8c170}
+.sub{margin:0 0 30px;color:#8d95a3;font-size:17px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.c{background:#151920;border:1px solid #2a303a;border-radius:22px;padding:18px;display:grid;gap:12px;justify-items:center}
+.big{width:220px;height:220px;border-radius:50px;overflow:hidden;box-shadow:0 14px 30px -10px rgba(0,0,0,.8)}
+.big svg,.sm svg{width:100%;height:100%;display:block}
+.name{font-weight:800;font-size:19px;text-align:center}
+.why{color:#9aa2af;font-size:13.5px;line-height:1.4;text-align:center}
+.home{display:flex;gap:10px;align-items:flex-start;justify-content:center;background:linear-gradient(160deg,#3b4a6b,#1b2236);border-radius:16px;padding:12px 10px 8px;width:100%;box-sizing:border-box}
+.app{display:grid;justify-items:center;gap:4px;width:56px}
+.sm{width:52px;height:52px;border-radius:12px;overflow:hidden}
+.app span{font-size:9.5px;color:#fff;white-space:nowrap}
+.ph{width:52px;height:52px;border-radius:12px;background:rgba(255,255,255,.18)}
+</style></head><body><div class="page">
+<h1>Lens Pin + driving, round 2</h1>
+<p class="sub">B polished, and C redrawn as a sunny day with real-looking fields.</p>
+<div class="grid" id="grid"></div>
+</div>
+<script>
+const fields = (rot = -12) => `<g transform="rotate(${rot} 50 50)">
+  <rect x="-10" y="-10" width="40" height="34" fill="#ffc928"/><rect x="30" y="-10" width="34" height="34" fill="#3fae5c"/><rect x="64" y="-10" width="46" height="34" fill="#a78bfa"/>
+  <rect x="-10" y="24" width="28" height="38" fill="#3fae5c"/><rect x="18" y="24" width="44" height="38" fill="#fb7a24"/><rect x="62" y="24" width="48" height="38" fill="#ffc928"/>
+  <rect x="-10" y="62" width="46" height="48" fill="#ffc928"/><rect x="36" y="62" width="30" height="48" fill="#38bdf8"/><rect x="66" y="62" width="44" height="48" fill="#3fae5c"/>
+  <path d="M-10 24 H110 M-10 62 H110 M30 -10 V24 M64 -10 V24 M18 24 V62 M62 24 V62 M36 62 V110 M66 62 V110" stroke="#151a22" stroke-width="3"/></g>`;
+const sprout = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})">
+  <path d="M0 9 V0" stroke="#2f8f4e" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M0 2 C-6 1 -8 -5 -7 -9 C-2 -8 0 -4 0 2Z" fill="#3fae5c"/><path d="M0 0 C6 -2 8 -7 7 -11 C2 -10 0 -6 0 0Z" fill="#46c776"/></g>`;
+const pin = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s}) translate(-50 -44)">
+  <path d="M50 86 C50 86 29 61 29 44 A21 21 0 1 1 71 44 C71 61 50 86 50 86Z" fill="#151a22" opacity=".35" transform="translate(2 3)"/>
+  <path d="M50 86 C50 86 29 61 29 44 A21 21 0 1 1 71 44 C71 61 50 86 50 86Z" fill="#e8c170"/>
+  <circle cx="50" cy="44" r="13.5" fill="#cfeedd"/>${sprout(50, 46, 1.25)}
+  <circle cx="50" cy="44" r="13.5" fill="none" stroke="#c99a3e" stroke-width="2.5"/>
+  <path d="M42 36 A11 11 0 0 1 52 33" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".8"/></g>`;
+// Top-down car, pointing up (rotate to follow the road).
+const carTop = (x, y, rot = 0, s = 1) => `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s})">
+  <rect x="-5" y="-8" width="10" height="16" rx="3.5" fill="#ef4444"/><rect x="-3.8" y="-4.5" width="7.6" height="4" rx="1.2" fill="#bfe6ff"/>
+  <rect x="-3.8" y="2.5" width="7.6" height="3" rx="1" fill="#bfe6ff" opacity=".85"/><rect x="-5" y="-8" width="10" height="16" rx="3.5" fill="none" stroke="#7f1d1d" stroke-width="1"/></g>`;
+// Side-view car, driving right.
+const carSide = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})">
+  <path d="M-14 0 L-12 -6 Q-10 -9 -6 -9 L4 -9 Q8 -9 10 -5 L14 -4 Q16 -3 16 0 L16 2 L-14 2Z" fill="#ef4444"/>
+  <path d="M-8 -8 L-6 -4 L2 -4 L2 -8Z M4 -8 L4 -4 L9 -4 Q8 -7 6 -8Z" fill="#bfe6ff"/>
+  <circle cx="-7" cy="3" r="3.4" fill="#1f2430"/><circle cx="9" cy="3" r="3.4" fill="#1f2430"/><circle cx="-7" cy="3" r="1.3" fill="#9aa2af"/><circle cx="9" cy="3" r="1.3" fill="#9aa2af"/></g>`;
+const road = (d, w = 9) => `<path d="${d}" stroke="#2b2f37" stroke-width="${w}" fill="none" stroke-linecap="round"/>
+  <path d="${d}" stroke="#ffd36b" stroke-width="1.2" fill="none" stroke-dasharray="3 3" stroke-linecap="round"/>`;
+
+// A. Winding road through the fields up to the pin, car on the road.
+const A = `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#151a22"/>${fields()}
+  ${road('M30 108 C34 90 58 86 54 74 C51 66 46 70 50 66')}${carTop(39, 89, 30)}${pin(56, 38, 0.92)}</svg>`;
+// B. Straight country road across the fields, car driving toward the pin.
+const B = `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#151a22"/>${fields(-12)}
+  ${road('M-6 92 L106 62', 11)}${carTop(30, 82, 75, 1.1)}${pin(62, 34, 0.95)}</svg>`;
+// C. Side view: car on a road in front of field rows, pin rising behind.
+const C = `<svg viewBox="0 0 100 100"><defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3a5a"/><stop offset="1" stop-color="#3c5070"/></linearGradient></defs>
+  <rect width="100" height="100" fill="url(#sk)"/><circle cx="80" cy="18" r="7" fill="#ffd36b" opacity=".9"/>
+  <path d="M0 58 L100 58 L100 78 L0 78Z" fill="#3fae5c"/><path d="M0 58 L33 58 L33 78 L0 78Z" fill="#ffc928"/><path d="M66 58 L100 58 L100 78 L66 78Z" fill="#fb7a24"/>
+  <g stroke="#151a22" stroke-width="1.5" opacity=".35">${[...Array(12)].map((_, i) => `<path d="M${i * 9} 60 V78"/>`).join('')}</g>
+  <rect x="0" y="78" width="100" height="22" fill="#2b2f37"/><path d="M0 89 H100" stroke="#ffd36b" stroke-width="1.6" stroke-dasharray="6 5"/>
+  ${pin(50, 30, 0.82)}${carSide(30, 84, 1.25)}</svg>`;
+// D. The car is inside the lens: pin head shows the road and car up close.
+const D = `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#151a22"/>${fields()}
+  <path d="M50 88 C50 88 27 61 27 43 A23 23 0 1 1 73 43 C73 61 50 88 50 88Z" fill="#151a22" opacity=".35" transform="translate(2 3)"/>
+  <path d="M50 88 C50 88 27 61 27 43 A23 23 0 1 1 73 43 C73 61 50 88 50 88Z" fill="#e8c170"/>
+  <clipPath id="lensD"><circle cx="50" cy="43" r="15.5"/></clipPath>
+  <g clip-path="url(#lensD)"><rect x="30" y="25" width="40" height="40" fill="#3fae5c"/><rect x="30" y="25" width="18" height="40" fill="#ffc928"/>
+    ${road('M50 20 L50 70', 10)}${carTop(50, 46, 0, 1.15)}</g>
+  <circle cx="50" cy="43" r="15.5" fill="none" stroke="#c99a3e" stroke-width="2.5"/>
+  <path d="M41 34 A12 12 0 0 1 52 31" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".7"/></svg>`;
+
+const ideas = [
+  ['A', 'Winding Road', A, 'A country road winds through the fields up to the pin, with a little red car on it.'],
+  ['B', 'Straight Shot', B, 'A straight road cutting across the patchwork, car headed for the pin. Simplest to read.'],
+  ['C', 'Drive-By', C, 'Side view: the car driving past crop rows, pin rising above. Most “road trip.”'],
+  ['D', 'Car in the Lens', D, 'The pin’s lens zooms in on the car on the road between two fields.'],
+];
+// Daytime sky with a sun and two soft clouds.
+const day = (id) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fb6f0"/><stop offset="1" stop-color="#bfe5ff"/></linearGradient></defs>
+  <rect width="100" height="100" fill="url(#${id})"/><circle cx="80" cy="17" r="8" fill="#ffd94a"/><circle cx="80" cy="17" r="12" fill="#ffd94a" opacity=".25"/>
+  <g fill="#fff" opacity=".9"><ellipse cx="20" cy="18" rx="10" ry="4.5"/><ellipse cx="27" cy="15" rx="7" ry="4"/><ellipse cx="52" cy="26" rx="7" ry="3"/></g>`;
+// Crop rows converging on a horizon point: a field of stripes in perspective.
+const rows = (x0, x1, yTop, yBot, vx, color, line, n) => {
+  let p = `<path d="M${x0} ${yBot} L${vx} ${yTop} L${x1} ${yBot} Z" fill="${color}"/>`;
+  for (let i = 1; i < n; i++) { const x = x0 + (x1 - x0) * i / n; p += `<path d="M${x} ${yBot} L${vx} ${yTop}" stroke="${line}" stroke-width="1.6"/>`; }
+  return p;
+};
+// C2a: rows to the horizon (corn | soy | wheat), road across the front, car driving, pin over the fields.
+const C2a = `<svg viewBox="0 0 100 100">${day('d1')}
+  <path d="M0 52 Q30 46 55 50 T100 48 L100 80 L0 80Z" fill="#7cc46b"/>
+  <clipPath id="ground1"><path d="M0 52 Q30 46 55 50 T100 48 L100 80 L0 80Z"/></clipPath>
+  <g clip-path="url(#ground1)">
+    ${rows(-30, 34, 50, 82, 30, '#ffc928', '#e0a91a', 7)}
+    ${rows(34, 70, 50, 82, 52, '#4cb862', '#3a9a4f', 6)}
+    ${rows(70, 130, 49, 82, 74, '#f4a340', '#d8862a', 7)}
+  </g>
+  <rect x="0" y="78" width="100" height="22" fill="#3a3f48"/><path d="M0 89 H100" stroke="#ffd36b" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <rect x="0" y="77" width="100" height="2" fill="#5b616c"/>
+  ${pin(50, 32, 0.8)}${carSide(30, 85, 1.3)}</svg>`;
+// C2b: rolling patchwork hills (quilt), road curving in front, car, pin.
+const C2b = `<svg viewBox="0 0 100 100">${day('d2')}
+  <path d="M0 58 Q25 44 50 54 Q75 64 100 50 L100 100 L0 100Z" fill="#4cb862"/>
+  <path d="M0 58 Q25 44 50 54 L50 100 L0 100Z" fill="#ffc928"/>
+  <path d="M50 54 Q62 59 74 58 L80 100 L50 100Z" fill="#f4a340"/>
+  <path d="M0 70 Q30 62 60 70 Q80 76 100 66 L100 100 L0 100Z" fill="#3fae5c"/>
+  <path d="M0 70 Q15 66 30 66 L26 100 L0 100Z" fill="#a78bfa" opacity=".9"/>
+  <g stroke="#2f8f4e" stroke-width="1.2" opacity=".5" fill="none"><path d="M5 62 Q25 52 45 58"/><path d="M8 66 Q26 57 46 62"/><path d="M60 74 Q78 78 96 70"/><path d="M62 80 Q80 84 98 76"/></g>
+  <path d="M-5 92 Q50 74 105 86 L105 100 L-5 100Z" fill="#3a3f48"/><path d="M-5 96 Q50 80 105 92" stroke="#ffd36b" stroke-width="1.5" fill="none" stroke-dasharray="5 4"/>
+  ${pin(54, 30, 0.8)}${carSide(34, 86, 1.25)}</svg>`;
+const ideas2 = [
+  ['B', 'Straight Shot', B, 'Top-down: a straight road across the colorful fields, red car headed for the pin.'],
+  ['C', 'Sunny Drive', C2a, 'Side view on a sunny day: corn, soybean and wheat rows running to the horizon, car on the road.'],
+  ['C+', 'Rolling Hills', C2b, 'Side view: patchwork farm hills, a curving road and the car. Most storybook.'],
+];
+
+document.getElementById('grid').innerHTML = ideas2.map(([k, name, svg, why]) => `<div class="c">
+  <div class="big">${svg}</div><div class="name">${k}. ${name}</div><div class="why">${why}</div>
+  <div class="home"><div class="app"><div class="ph"></div><span>Maps</span></div><div class="app"><div class="sm">${svg}</div><span>Spot-a-Crop</span></div><div class="app"><div class="ph"></div><span>Weather</span></div></div>
+</div>`).join('');
+</script></body></html>

@@ -63,10 +63,4 @@ CAST = {
         'ref': "Darling, <gasp> you will not believe what happened! He said he loved me, and then he left! Just like that! "
                "<sigh> Oh, it's all too much. Pour me a glass of something, I simply must sit down.",
     },
-    'cole': {
-        'name': 'Cole', 'emoji': '🎸', 'blurb': 'Sings every call', 'base': 'kokoro', 'voice': 'am_puck', 'speed': 0.95, 'pitch': 1.0, 'exag': 0.8,
-        'sing': True,   # lines are sung: spoken take -> songify.py (Auto-Tune style, banjo backing)
-        'ref': "Well howdy, folks, pull up a hay bale. I'm gonna sing you a little song about the open road, "
-               "the big blue sky, and a field of corn that goes on forever. Here we go now, one, two, three!",
-    },
 }

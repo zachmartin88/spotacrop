@@ -42,35 +42,62 @@ def main(chars):
         tb.prepare_conditionals(str(ref))
         mine = [l for l in all_lines if l['char'] == ch]
         todo = []
+        seen = set()
         for l in mine:
             l['id'] = hashlib.sha1(f"{refsig}|{l['text']}".encode()).hexdigest()[:12]
-            if not (d / f"{l['id']}.m4a").exists():
+            # The same text can appear under two moments; record it once (both keys share the clip).
+            if l['id'] not in seen and not (d / f"{l['id']}.m4a").exists():
                 todo.append(l)
+            seen.add(l['id'])
         print(f'{ch}: {len(mine)} lines, {len(todo)} to record', flush=True)
         failed, t0 = [], time.time()
-        for n, l in enumerate(todo, 1):
-            ok = False
-            for attempt in range(3):
-                if attempt < 2:
-                    w, sr = tb.generate(l['text'], temperature=0.85 if attempt == 0 else 0.7), tb.sr
-                else:   # last try: the slower dramatic model, which garbles less
-                    if cb is None:
-                        cb = ChatterboxTTS.from_pretrained(device=DEV)
-                    cb.prepare_conditionals(str(ref), exaggeration=c.get('exag', 0.8))
-                    w, sr = cb.generate(spoken(l['text']), exaggeration=c.get('exag', 0.8), cfg_weight=0.4), cb.sr
-                raw = d / 'tmp.wav'
-                sf.write(str(raw), w.squeeze(0).cpu().numpy(), sr)
-                out = d / f"{l['id']}.m4a"
-                polish_to_m4a(raw, out)
-                ok, score, heard = check(out, spoken(l['text']), need=0.8)
-                if ok:
-                    break
-                out.unlink(missing_ok=True)
-            if not ok:
-                failed.append({**l, 'heard': heard, 'score': score})
-            if n % 25 == 0 or n == len(todo):
-                rate = (time.time() - t0) / n
-                print(f'  {ch} {n}/{len(todo)}  {rate:.1f}s/line  ~{(len(todo) - n) * rate / 60:.0f} min left  failed {len(failed)}', flush=True)
+        # Record and check in parallel: Whisper checks one line (on the CPU) while the next records (on the GPU).
+        from concurrent.futures import ThreadPoolExecutor
+        pool, pending = ThreadPoolExecutor(max_workers=1), []   # one Whisper at a time (model load isn't thread-safe)
+        def finish(job):
+            l, tmp, out, attempt = job['l'], job['tmp'], job['out'], job['attempt']
+            ok, score, heard = job['fut'].result()
+            if ok:
+                if tmp.exists(): tmp.rename(out)
+                return None
+            tmp.unlink(missing_ok=True)
+            return {**l, 'heard': heard, 'score': score, 'attempt': attempt}
+        def record(l, attempt):
+            if attempt < 2:
+                w, sr = tb.generate(l['text'], temperature=0.85 if attempt == 0 else 0.7), tb.sr
+            else:   # last try: the slower dramatic model, which garbles less
+                nonlocal_cb[0] = nonlocal_cb[0] or ChatterboxTTS.from_pretrained(device=DEV)
+                m = nonlocal_cb[0]
+                m.prepare_conditionals(str(ref), exaggeration=c.get('exag', 0.8))
+                w, sr = m.generate(spoken(l['text']), exaggeration=c.get('exag', 0.8), cfg_weight=0.4), m.sr
+            raw = d / f"raw_{l['id']}.wav"
+            sf.write(str(raw), w.squeeze(0).cpu().numpy(), sr)
+            tmp = d / f"tmp_{l['id']}.m4a"
+            polish_to_m4a(raw, tmp); raw.unlink(missing_ok=True)
+            return {'l': l, 'tmp': tmp, 'out': d / f"{l['id']}.m4a", 'attempt': attempt,
+                    'fut': pool.submit(check, tmp, spoken(l['text']), 0.8)}
+        nonlocal_cb = [cb]
+        queue = [(l, 0) for l in todo]
+        done = 0
+        while queue or pending:
+            if queue:
+                l, attempt = queue.pop(0)
+                pending.append(record(l, attempt))
+            while pending and (pending[0]['fut'].done() or not queue):
+                bad = finish(pending.pop(0))
+                if bad is None:
+                    done += 1
+                elif bad['attempt'] < 2:
+                    if bad['attempt'] == 1:
+                        tb.prepare_conditionals(str(ref))
+                    queue.append((bad, bad['attempt'] + 1))
+                else:
+                    failed.append(bad); done += 1
+                if done and done % 25 == 0:
+                    rate = (time.time() - t0) / done
+                    print(f'  {ch} {done}/{len(todo)}  {rate:.1f}s/line  ~{(len(todo) - done) * rate / 60:.0f} min left  failed {len(failed)}', flush=True)
+        cb = nonlocal_cb[0]
+        print(f'  {ch} done: {len(todo) - len(failed)} recorded, {len(failed)} failed after 3 tries, {(time.time() - t0) / 60:.0f} min', flush=True)
         json.dump(failed, open(d / 'failed.json', 'w'), indent=1)
         pack(ch, mine, d)
 

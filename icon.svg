@@ -1,7 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#0d0f12"/>
-  <path d="M8 46 L32 30 L56 46 Z" fill="#1c2027"/>
-  <path d="M12 46 L32 32 M20 46 L32 32 M28 46 L32 32 M36 46 L32 32 M44 46 L32 32 M52 46 L32 32" stroke="#d4a64a" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="32" cy="20" r="7" fill="none" stroke="#e8c170" stroke-width="3"/>
-  <circle cx="32" cy="20" r="2.5" fill="#e8c170"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><clipPath id="r"><rect width="100" height="100" rx="22"/></clipPath></defs><g clip-path="url(#r)"><rect width="100" height="100" fill="#151a22"/><g transform="rotate(-12 50 50)">
+  <rect x="-10" y="-10" width="40" height="34" fill="#ffc928"/><rect x="30" y="-10" width="34" height="34" fill="#3fae5c"/><rect x="64" y="-10" width="46" height="34" fill="#a78bfa"/>
+  <rect x="-10" y="24" width="28" height="38" fill="#3fae5c"/><rect x="18" y="24" width="44" height="38" fill="#fb7a24"/><rect x="62" y="24" width="48" height="38" fill="#ffc928"/>
+  <rect x="-10" y="62" width="46" height="48" fill="#ffc928"/><rect x="36" y="62" width="30" height="48" fill="#38bdf8"/><rect x="66" y="62" width="44" height="48" fill="#3fae5c"/>
+  <path d="M-10 24 H110 M-10 62 H110 M30 -10 V24 M64 -10 V24 M18 24 V62 M62 24 V62 M36 62 V110 M66 62 V110" stroke="#151a22" stroke-width="3"/></g>
+  <path d="M-6 92 L106 62" stroke="#2b2f37" stroke-width="11" fill="none" stroke-linecap="round"/>
+  <path d="M-6 92 L106 62" stroke="#ffd36b" stroke-width="1.2" fill="none" stroke-dasharray="3 3" stroke-linecap="round"/><g transform="translate(30 82) rotate(75) scale(1.1)">
+  <rect x="-5" y="-8" width="10" height="16" rx="3.5" fill="#ef4444"/><rect x="-3.8" y="-4.5" width="7.6" height="4" rx="1.2" fill="#bfe6ff"/>
+  <rect x="-3.8" y="2.5" width="7.6" height="3" rx="1" fill="#bfe6ff" opacity=".85"/><rect x="-5" y="-8" width="10" height="16" rx="3.5" fill="none" stroke="#7f1d1d" stroke-width="1"/></g><g transform="translate(62 34) scale(0.95) translate(-50 -44)">
+  <path d="M50 86 C50 86 29 61 29 44 A21 21 0 1 1 71 44 C71 61 50 86 50 86Z" fill="#151a22" opacity=".35" transform="translate(2 3)"/>
+  <path d="M50 86 C50 86 29 61 29 44 A21 21 0 1 1 71 44 C71 61 50 86 50 86Z" fill="#e8c170"/>
+  <circle cx="50" cy="44" r="13.5" fill="#cfeedd"/><g transform="translate(50 46) scale(1.25)">
+  <path d="M0 9 V0" stroke="#2f8f4e" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M0 2 C-6 1 -8 -5 -7 -9 C-2 -8 0 -4 0 2Z" fill="#3fae5c"/><path d="M0 0 C6 -2 8 -7 7 -11 C2 -10 0 -6 0 0Z" fill="#46c776"/></g>
+  <circle cx="50" cy="44" r="13.5" fill="none" stroke="#c99a3e" stroke-width="2.5"/>
+  <path d="M42 36 A11 11 0 0 1 52 33" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".8"/></g></g></svg>
