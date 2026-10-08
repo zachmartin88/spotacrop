@@ -15,7 +15,9 @@ import { fx, kernel, settings, stats, saveStats, addMiles, checkBadges, badgesHt
 import { bingoCard, bingoSpot, bingoHtml, guessRound, satelliteHtml, cropOfTheDay, cropFacts, cropBlurb, countyFacts } from './games.js';
 import { SeasonLayer, season } from './season.js';
 import { showOnboarding, onboarded } from './onboarding.js';
-import { prefs as voicePrefs, STYLES, RATES, listVoices, say, stop as stopVoice, phrase, hello, sample } from './voice.js';
+import { say, stop as stopVoice, phrase, hello, sample } from './voice.js';
+import * as talk from './talk.js';
+import * as vpack from './voicepack.js';
 import { isNative, KeepAwake, StatusBar, App as NativeApp, startBackgroundLocation, stopBackgroundLocation, nativePositionOnce, scheduleDailyCrops, cancelDailyCrops } from './native.js';
 
 const $ = (id) => document.getElementById(id);
@@ -479,6 +481,7 @@ async function collect(res) {
     placeName(res.lat, res.lon).then((p) => {
       state.place = p;
       const st = p ? Object.entries(STATE_ABBR).find(([, n]) => n === p.state)?.[0] : null;
+      if (st && state.mode === 'drive' && state.voice && talk.ready()) talk.enteredState(st);
       if (st && recordState(state.album, st)) {
         toast(`🗺️ New state stamp: ${p.state}!`);
         fx('ding');
@@ -495,8 +498,9 @@ async function collect(res) {
       fx('card');
       submitScore();
       if (r.isNew) {
-        speak(`New card: ${prettyName(s.code)}!`);
         const rar = rarityOf(s.code);
+        if (state.voice && talk.ready()) talk.newCard(s.code, rar.id !== 'common');
+        else speak(`New card: ${prettyName(s.code)}!`);
         if (rar.id !== 'common') setTimeout(() => kernel(`Whoa, a <b>${rar.name.toLowerCase()}</b> card! ${cropEmoji(s.code)} Not everyone finds one of those.`, { mood: 'excited' }), 3200);
       }
       rewardBadges();
@@ -505,6 +509,7 @@ async function collect(res) {
     const b = isAg(s.code) ? bingoSpot(s.code) : null;
     if (b) {
       fx(b.newLines ? 'win' : 'pop');
+      if (state.voice && talk.ready()) talk.bingo(b.newLines > 0);
       toast(`🎯 Bingo square: ${cropEmoji(s.code)} ${prettyName(s.code)}`);
       if (b.newLines) {
         stats.bingos += b.newLines; saveStats();
@@ -581,6 +586,7 @@ async function openLeaderboard() {
 function rewardBadges() {
   submitScore();
   const fresh = checkBadges(state.album, albumSummary(state.album));
+  if (fresh.length && state.voice && talk.ready() && state.mode === 'drive') talk.badge();
   fresh.forEach((b, i) => setTimeout(() => {
     fx('ding');
     toast(`🏅 Badge unlocked: ${b.emoji} ${b.name}`);
@@ -1105,6 +1111,9 @@ function logTrip(res) {
       }
       t.total += d;
       stats.totalMiles += d / 1609.34;
+      const driven = (t.total - (state.driveStart ?? t.total)) / 1609.34, prevDriven = driven - d / 1609.34;
+      const hit = [10, 25, 50, 100, 250, 500].find((m) => prevDriven < m && driven >= m);
+      if (hit && state.voice && talk.ready()) talk.milestone(hit);
       saveStats();
     }
   }
@@ -1303,10 +1312,21 @@ els.sheetBody.addEventListener('click', async (e) => {
   else if (act === 'tour') { closeSheet(); showOnboarding(); }
   else if (act === 'voice') openVoice();
   else if (act === 'vtoggle') { setVoice(!state.voice); b.classList.toggle('on', state.voice); b.querySelector('b').textContent = state.voice ? 'On' : 'Off'; }
-  else if (act === 'vstyle') { voicePrefs.set('style', b.dataset.v); markPicked(b); fx('pop'); say(sample()); }
-  else if (act === 'vrate') { voicePrefs.set('rate', +b.dataset.v); markPicked(b); say(sample()); }
-  else if (act === 'vpick') { voicePrefs.set('uri', b.dataset.v); markPicked(b); fx('pop'); say(sample()); }
-  else if (act === 'vtest') { b.classList.remove('talk'); void b.offsetWidth; b.classList.add('talk'); say(sample()); }
+  else if (act === 'vcast') pickCast(b);
+  else if (act === 'vwho') {
+    talk.talk.set('who', b.dataset.v); fx('pop');
+    els.sheetBody.querySelectorAll('.vcard.picked, [data-act="vwho"].picked').forEach((x) => x.classList.remove('picked'));
+    b.classList.add('picked');
+    if (b.dataset.v === 'phone') say(sample()); else { talk.newDrive(); talk.voiceOn(); }
+  }
+  else if (act === 'vchat') {
+    talk.talk.set('chatty', b.dataset.v); markPicked(b); fx('pop');
+    $('chatHint').textContent = talk.CHATTY.find((c) => c.id === b.dataset.v)?.blurb || '';
+  }
+  else if (act === 'vtest') {
+    b.classList.remove('talk'); void b.offsetWidth; b.classList.add('talk');
+    if (talk.ready()) { talk.hush(); talk.newDrive(); talk.voiceOn(); } else say(sample());
+  }
   else if (act === 'enddrive') { closeSheet(); stopDriving(); }
   else if (act === 'startdrive') { closeSheet(); startDriving(); }
   else if (act === 'guess') openGuess();
@@ -1366,23 +1386,28 @@ function speak(text) {
 
 // Only speak crops and pasture, and only when a side changes. Not every farmstead or tree line.
 function announce(res) {
+  if (!state.voice) return;
+  const cast = talk.ready();
   const items = [];
   for (const [side, s] of Object.entries(res.sides)) {
-    if (s.code == null || !isAg(s.code)) continue;
-    const name = prettyName(s.code);
-    if (state.lastSpoken[side] === name) continue;
-    state.lastSpoken[side] = name;
+    // The cast also has lines for towns, water, woods and pasture; the phone voice only does crops.
+    if (s.code == null || (!cast && !isAg(s.code))) continue;
+    if (state.lastSpoken[side] === s.code) continue;
+    state.lastSpoken[side] = s.code;
     items.push({ side, code: s.code, probably: s.tier === 'annual' });
   }
-  if (items.length) speak(phrase(items));
+  if (cast) {
+    if (items.length) talk.cropsChanged(items, isAg);
+    talk.tick(res.sides);
+  } else if (items.length) speak(phrase(items));
 }
 
 function setVoice(on) {
   state.voice = on;
   localSet('fs.voice', on ? '1' : '0');
   els.voiceBtn.setAttribute('aria-pressed', String(on));
-  if (on) { state.lastSpoken = {}; speak(hello()); }
-  else stopVoice();
+  if (on) { state.lastSpoken = {}; if (talk.ready()) talk.voiceOn(); else speak(hello()); }
+  else { stopVoice(); talk.hush(); }
 }
 els.voiceBtn.addEventListener('click', () => setVoice(!state.voice));
 els.voiceBtn.setAttribute('aria-pressed', String(state.voice));
@@ -1416,6 +1441,9 @@ function startDriving() {
   renderStripMessage('Finding GPS…');
   setStatus('Finding GPS…', 'busy');
   state.trip.last = null;   // don't count the gap since the last drive
+  state.driveStart = state.trip.total;
+  state.driveMix = { ...state.trip.m };
+  if (state.voice && talk.ready()) talk.driveStarted();
 
   if (new URLSearchParams(location.search).has('sim')) return simulate();
   // iPhone app: location that keeps working with the screen locked (so voice keeps naming crops).
@@ -1440,45 +1468,71 @@ function startDriving() {
 // ---------- voice picker ----------
 
 function voiceSummary() {
-  const st = STYLES.find((x) => x.id === voicePrefs.style) || STYLES[1];
-  const name = voicePrefs.uri ? (cachedVoiceName || 'Custom voice') : 'Phone voice';
-  return `${state.voice ? 'On' : 'Off'} · ${name} · ${st.emoji} ${st.name}`;
+  const st = talk.CHATTY.find((c) => c.id === talk.talk.chatty);
+  const who = talk.MIXES.find((m) => m.id === talk.talk.who)?.name || castName(talk.talk.who) || 'Phone voice';
+  return `${state.voice ? 'On' : 'Off'} · ${who} · ${st?.emoji ?? ''} ${st?.name ?? ''}`;
 }
-let cachedVoiceName = null;
-listVoices().then((vs) => { cachedVoiceName = vs.find((v) => v.uri === voicePrefs.uri)?.name || null; }).catch(() => {});
-
-function markPicked(b) {
-  (b.dataset.act === 'vpick' ? els.sheetBody : b.parentElement).querySelectorAll(`[data-act="${b.dataset.act}"].picked`).forEach((x) => x.classList.remove('picked'));
-  b.classList.add('picked');
-  if (b.dataset.act === 'vpick') cachedVoiceName = b.dataset.name || null;
-}
+let castList = [];
+const castName = (id) => castList.find((c) => c.id === id)?.name;
+vpack.cast().then((c) => { castList = c; return talk.refreshInstalled(); }).catch(() => {});
 
 async function openVoice() {
-  const voices = await listVoices();
-  const groups = [['farm', '🚜 Farm crew'], ['regular', '🗣️ Regular voices'], ['silly', '🤪 Silly voices']];
-  const row = (v) => `<button data-act="vpick" data-v="${esc(v.uri)}" data-name="${esc(v.name)}" class="vrow${v.uri === voicePrefs.uri ? ' picked' : ''}">
-      <span class="vemo">${v.emoji}</span><b>${esc(v.name)}</b><small>${esc(v.blurb)}</small></button>`;
-  const list = voices.length
-    ? groups.map(([g, title]) => {
-      const vs = voices.filter((v) => v.group === g);
-      return vs.length ? `<div class="vgroup"><div class="lbl">${title}</div><div class="vlist">${g === 'regular'
-        ? `<button data-act="vpick" data-v="" data-name="" class="vrow${!voicePrefs.uri ? ' picked' : ''}"><span class="vemo">📱</span><b>Phone default</b><small>Whatever your phone uses</small></button>` : ''}${vs.map(row).join('')}</div></div>` : '';
-    }).join('')
-    : '<p class="predict">This browser doesn\'t list its voices. The Spot-a-Crop iPhone app has a whole farm crew to pick from.</p>';
-  showSheet('voice', `<article class="detail voice-sheet"><div class="lbl">🗣️ Voice & style</div>
+  castList = await vpack.cast();
+  const have = await talk.refreshInstalled();
+  const who = talk.talk.who;
+  const card = (c) => {
+    const on = have.includes(c.id);
+    return `<button data-act="vcast" data-v="${c.id}" class="vcard${who === c.id ? ' picked' : ''}${on ? ' have' : ''}">
+      <span class="vemo">${c.emoji}</span><b>${esc(c.name)}</b><small>${esc(c.blurb)}</small>
+      <em class="vget">${on ? (who === c.id ? 'Talking ✓' : 'Ready') : `Get · ${c.mb} MB`}</em><i class="vbar"><b></b></i></button>`;
+  };
+  showSheet('voice', `<article class="detail voice-sheet"><div class="lbl">🗣️ Voice</div>
     <div class="vtop">
       <button data-act="vtoggle" class="vswitch${state.voice ? ' on' : ''}"><span>Read crops out loud</span><b>${state.voice ? 'On' : 'Off'}</b></button>
       <button data-act="vtest" class="vtest">🔊 Hear it</button>
     </div>
-    <div class="lbl">How it talks</div>
-    <div class="vchips">${STYLES.map((x) => `<button data-act="vstyle" data-v="${x.id}" class="vchip${x.id === voicePrefs.style ? ' picked' : ''}">${x.emoji} ${x.name}</button>`).join('')}</div>
-    <div class="lbl">Speed</div>
-    <div class="vchips">${RATES.map((r) => `<button data-act="vrate" data-v="${r.v}" class="vchip${r.v === voicePrefs.rate ? ' picked' : ''}">${r.name}</button>`).join('')}</div>
-    ${list}
-    <p class="predict">Tap a voice to hear it. More voices: iPhone Settings › Accessibility › Spoken Content › Voices.</p>
+    <div class="lbl">Who's talking</div>
+    ${castList.length ? `<div class="vcast">${castList.map(card).join('')}</div>` : '<p class="predict">Couldn\'t load the cast. Check your connection.</p>'}
+    <div class="vchips">${talk.MIXES.map((m) => `<button data-act="vwho" data-v="${m.id}" class="vchip${who === m.id ? ' picked' : ''}"${have.length < 2 ? ' disabled' : ''}>${m.emoji} ${m.name}</button>`).join('')}
+      <button data-act="vwho" data-v="phone" class="vchip${!castList.some((c) => c.id === who) && !who.startsWith('mix') ? ' picked' : ''}">📱 Basic phone voice</button></div>
+    <p class="predict">${have.length < 2 ? 'Get two or more voices to mix them up. ' : ''}Each voice downloads once and works with no signal.</p>
+    <div class="lbl">Chattiness</div>
+    <div class="vchips">${talk.CHATTY.map((c) => `<button data-act="vchat" data-v="${c.id}" class="vchip${talk.talk.chatty === c.id ? ' picked' : ''}">${c.emoji} ${c.name}</button>`).join('')}</div>
+    <p class="predict" id="chatHint">${esc(talk.CHATTY.find((c) => c.id === talk.talk.chatty)?.blurb || '')}</p>
   </article>`);
 }
 
+function markPicked(b) {
+  b.parentElement.querySelectorAll(`[data-act="${b.dataset.act}"].picked`).forEach((x) => x.classList.remove('picked'));
+  b.classList.add('picked');
+}
+
+async function pickCast(b) {
+  const id = b.dataset.v;
+  if (!(await vpack.installed(id))) {
+    if (b.classList.contains('loading')) return;
+    b.classList.add('loading');
+    const bar = b.querySelector('.vbar b'), lbl = b.querySelector('.vget');
+    try {
+      await vpack.install(id, (p) => { bar.style.width = `${Math.round(p * 100)}%`; lbl.textContent = `${Math.round(p * 100)}%`; });
+    } catch {
+      b.classList.remove('loading'); lbl.textContent = 'Try again';
+      return toast('Download failed. Check your signal.');
+    }
+    b.classList.remove('loading'); b.classList.add('have');
+    await talk.refreshInstalled();
+    fx('ding');
+  }
+  talk.talk.set('who', id);
+  els.sheetBody.querySelectorAll('.vcard').forEach((x) => {
+    x.classList.toggle('picked', x === b);
+    x.querySelector('.vget').textContent = x === b ? 'Talking ✓' : x.classList.contains('have') ? 'Ready' : x.querySelector('.vget').textContent;
+  });
+  const have = await talk.refreshInstalled();
+  els.sheetBody.querySelectorAll('[data-act="vwho"]').forEach((x) => { x.classList.remove('picked'); x.disabled = have.length < 2 && x.dataset.v !== 'phone'; });
+  talk.hush();
+  talk.preview(id, ['hello', 'crop:1:left']);
+}
 function startNativeLocation() {
   startBackgroundLocation(onFix, (err) => {
     setStatus(err?.code === 'NOT_AUTHORIZED' ? 'Location blocked' : 'No GPS signal', 'err');
@@ -1496,7 +1550,12 @@ function stopDriving() {
   if (webWatch != null) { navigator.geolocation.clearWatch(webWatch); webWatch = null; }
   clearInterval(simTimer); simTimer = null;
   wakeLock?.release?.().catch(() => {}); wakeLock = null;
-  stopVoice();
+  // The cast signs off with a recap of the drive's top crop.
+  if (state.voice && talk.ready()) {
+    const mix = Object.entries(state.trip.m).map(([k, v]) => [+k, v - (state.driveMix?.[k] || 0)]).filter(([k, v]) => isAg(k) && v > 0);
+    mix.sort((a, b) => b[1] - a[1]);
+    talk.driveEnded(mix[0]?.[0]);
+  } else stopVoice();
   state.following = false; els.recenter.hidden = true;
   state.lastSpoken = {};
   els.strip.hidden = true;

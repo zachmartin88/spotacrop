@@ -3,13 +3,13 @@
 //  - Crop tiles (the fixed 0.01° lookup tiles): cache-first. They never change, so anything fetched
 //    while driving is kept (recent cache, trimmed), and routes saved for offline live in their own
 //    cache until deleted.
-const SHELL = 'fs-shell-v23';
+const SHELL = 'fs-shell-v24';
 const RECENT = 'fs-tiles-recent';
 const SAVED = 'fs-tiles-saved';
 const RECENT_MAX = 5000;
 
 const SHELL_FILES = [
-  './', 'index.html', 'style.css', 'app.js', 'data.js', 'fields.js', 'offline.js', 'cdl-classes.js', 'palette.js', 'regions.js', 'share.js', 'album.js', 'ahead.js', 'parcels.js', 'belts.js', 'fun.js', 'games.js', 'season.js', 'onboarding.js', 'native.js', 'voice.js', 'puns.js', 'data/states.json', 'data/crops.json',
+  './', 'index.html', 'style.css', 'app.js', 'data.js', 'fields.js', 'offline.js', 'cdl-classes.js', 'palette.js', 'regions.js', 'share.js', 'album.js', 'ahead.js', 'parcels.js', 'belts.js', 'fun.js', 'games.js', 'season.js', 'onboarding.js', 'native.js', 'voice.js', 'puns.js', 'talk.js', 'voicepack.js', 'data/states.json', 'data/crops.json',
   'config.js', 'icon.svg', 'manifest.webmanifest', 'privacy.html', 'support.html', 'legal.css',
   'vendor/leaflet.css', 'vendor/leaflet.js', 'vendor/leaflet-rotate.js',
 ];
@@ -76,6 +76,9 @@ self.addEventListener('fetch', (e) => {
     }).catch(() => caches.match(req)));
     return;
   }
+
+  // Voice packs are big and kept by the app itself (IndexedDB), so the service worker stays out of it.
+  if (/\/voice\//.test(new URL(url).pathname)) return;
 
   // App shell: network first (so updates show up), cached copy when offline or very slow.
   const sameOrigin = new URL(url).origin === self.location.origin;

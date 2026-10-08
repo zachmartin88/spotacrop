@@ -502,6 +502,21 @@ BANTER = {
     'sam': ["Plenty of farmland ahead.", "Remember to take breaks on long drives."],
 }
 
+# ---------------------------------------------------------------- round 3 cast
+import lines_cast3 as r3
+CHARS = CHARS + r3.NEW
+T.update(r3.T)
+for d, add in ((FLAVOR, r3.FLAVOR), (MOMENTS, r3.MOMENTS), (STREAK_CROP, r3.STREAK_CROP), (HARVEST, r3.HARVEST), (SPOTS, r3.SPOTS)):
+    for k, by in add.items():
+        d.setdefault(k, {}).update(by)
+for ch in r3.NEW:
+    FLAVOR.setdefault(ch, {})
+for d, add in ((STATE_T, r3.STATE_T), (BELT_T, r3.BELT_T), (FACT_T, r3.FACT_T), (JOKE_T, r3.JOKE_T), (MILES_T, r3.MILES_T),
+               (AHEAD_T, r3.AHEAD_T), (RECAP_T, r3.RECAP_T), (BANTER, r3.BANTER)):
+    d.update(add)
+# Earl's welcome gets more Southern too.
+STATE_T['earl'] = "Well, welcome to {S}, partner. The {N}. {F}"
+
 # ---------------------------------------------------------------- build
 def cap(s):
     return s[:1].upper() + s[1:]
@@ -520,11 +535,11 @@ def build(chars=CHARS):
                 for t in picks:
                     pun = rnd.choice(PUNS.get(code, GENERIC_PUNS))
                     add(char, f'crop:{code}:{side}', t.replace('{X}', cap(x)).replace('{x}', x).replace('{pun}', pun))
-            for line in FLAVOR[char].get(code, []):
+            for line in FLAVOR.get(char, {}).get(code, []):
                 add(char, f'flavor:{code}', line)
             add(char, f'name:{code}', f'{name}.' if char == 'sam' else f'{name}!')
         for spot, by in SPOTS.items():
-            for line in by[char]:
+            for line in by.get(char, []):
                 add(char, f'spot:{spot}', line)
         for st, (s, n, f) in STATES.items():
             add(char, f'state:{st}', STATE_T[char].replace('{S}', s).replace('{N}', n).replace('{F}', f))
@@ -537,10 +552,10 @@ def build(chars=CHARS):
         for f in GENERAL_FACTS:
             add(char, 'fact', rnd.choice(FACT_T[char]).replace('{F}', f))
         for key, by in MOMENTS.items():
-            for line in by[char]:
+            for line in by.get(char, []):
                 add(char, key, line)
         for code, by in STREAK_CROP.items():
-            for line in by[char]:
+            for line in by.get(char, []):
                 add(char, f'streak:{code}', line)
         for j in JOKES:
             add(char, 'joke', JOKE_T[char].replace('{J}', j))
@@ -548,10 +563,11 @@ def build(chars=CHARS):
             add(char, f'miles:{m}', MILES_T[char].replace('{M}', line))
         for code in AHEAD:
             x = CROPS[code][0]
-            add(char, f'ahead:{code}', AHEAD_T[char].replace('{x}', x))
+            add(char, f'ahead:{code}', AHEAD_T[char].replace('{X}', cap(x)).replace('{x}', x))
             add(char, f'recap:{code}', RECAP_T[char].replace('{x}', x))
         for bucket, by in HARVEST.items():
-            add(char, f'harvest:{bucket}', by[char])
+            if char in by:
+                add(char, f'harvest:{bucket}', by[char])
         for line in BANTER[char]:
             add(char, 'banter', line)
     return out
