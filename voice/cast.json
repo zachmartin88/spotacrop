@@ -17,6 +17,15 @@
    "version": "7f68d769c2",
    "mb": 18.9,
    "lines": 1103
+  },
+  {
+   "id": "penny",
+   "name": "Penny",
+   "emoji": "🤪",
+   "blurb": "Bubbly pun machine",
+   "version": "cd039b1a7d",
+   "mb": 20.1,
+   "lines": 1101
   }
  ]
 }
