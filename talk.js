@@ -101,7 +101,7 @@ export function tick(sides) {
   // Quiet stretch: a fact, a joke or some banter.
   if (pack.quietFor() > 90e3 && since('extra') > gap('extra')) {
     const code = sides.left?.code ?? sides.here?.code;
-    const pool = talk.chatty === 'chatty' ? [`fact:${code}`, 'fact', 'joke', 'banter', 'banter'] : [`fact:${code}`, 'fact'];
+    const pool = talk.chatty === 'chatty' ? [`fact:${code}`, 'fact', 'joke', 'banter', 'meme', 'meme'] : [`fact:${code}`, 'fact', 'meme'];
     const k = pool[Math.floor(Math.random() * pool.length)];
     if (line([k], 'extra') || line(['fact'], 'extra')) mark('extra');
   }

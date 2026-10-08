@@ -504,6 +504,7 @@ BANTER = {
 
 # ---------------------------------------------------------------- round 3 cast
 import lines_cast3 as r3
+import lines_memes
 CHARS = CHARS + r3.NEW
 T.update(r3.T)
 for d, add in ((FLAVOR, r3.FLAVOR), (MOMENTS, r3.MOMENTS), (STREAK_CROP, r3.STREAK_CROP), (HARVEST, r3.HARVEST), (SPOTS, r3.SPOTS)):
@@ -570,6 +571,9 @@ def build(chars=CHARS):
                 add(char, f'harvest:{bucket}', by[char])
         for line in BANTER[char]:
             add(char, 'banter', line)
+        for key, more in lines_memes.EXTRA.get(char, {}).items():
+            for line in more:
+                add(char, key, line)
     return out
 
 if __name__ == '__main__':
