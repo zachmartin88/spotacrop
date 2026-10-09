@@ -55,6 +55,15 @@
    "lines": 1048
   },
   {
+   "id": "nigel",
+   "name": "Nigel",
+   "emoji": "🎩",
+   "blurb": "Nature documentary narrator",
+   "version": "c724d4c8bb",
+   "mb": 24.9,
+   "lines": 1092
+  },
+  {
    "id": "brody",
    "name": "Brody",
    "emoji": "🏄",
