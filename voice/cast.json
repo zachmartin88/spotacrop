@@ -35,6 +35,15 @@
    "version": "d887e4b65a",
    "mb": 18.9,
    "lines": 1102
+  },
+  {
+   "id": "sam",
+   "name": "Sam",
+   "emoji": "🎧",
+   "blurb": "Calm and clear",
+   "version": "3b3eaa70ec",
+   "mb": 13.1,
+   "lines": 1048
   }
  ]
 }
