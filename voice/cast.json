@@ -89,6 +89,15 @@
    "version": "25ffd6e533",
    "mb": 23.6,
    "lines": 1091
+  },
+  {
+   "id": "delphine",
+   "name": "Delphine",
+   "emoji": "💅",
+   "blurb": "Soap-opera drama queen",
+   "version": "d6febec9cb",
+   "mb": 28.0,
+   "lines": 1093
   }
  ]
 }
