@@ -21,6 +21,7 @@ export class SeasonLayer {
     this.box = document.createElement('div');
     this.box.className = 'season-fx';
     document.body.appendChild(this.box);
+    if (!map.getPane('tractors')) { map.createPane('tractors'); Object.assign(map.getPane('tractors').style, { zIndex: 590, pointerEvents: 'none' }); }
     this.tractors = L.layerGroup().addTo(map);
     map.on('zoomend', () => this.update());
     this.update();
@@ -60,7 +61,7 @@ export class SeasonLayer {
       if (!b.contains(center)) continue;
       n++;
       L.marker(center, {
-        interactive: false, keyboard: false,
+        pane: 'tractors', interactive: false, keyboard: false,   // drawn under the field name labels
         icon: L.divIcon({ className: 'field-label-anchor', iconSize: [0, 0], html: `<span class="tractor" style="--d:${8 + n * 2}s">🚜</span>` }),
       }).addTo(this.tractors);
     }

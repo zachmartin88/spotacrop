@@ -121,8 +121,11 @@ const KERNEL = `<svg viewBox="0 0 64 72" aria-hidden="true">
 </svg>`;
 
 let mascotEl = null, mascotTimer = null;
+// While a drive is on and a voice is doing the talking, Kernel's bubbles stay out of the way.
+let kernelQuiet = () => false;
+export const setKernelQuiet = (fn) => { kernelQuiet = fn; };
 export function kernel(text, { ms = 5200, speak = null, mood = '' } = {}) {
-  if (!settings.mascot) return;
+  if (!settings.mascot || kernelQuiet()) return;
   if (!mascotEl) {
     mascotEl = document.createElement('div');
     mascotEl.className = 'kernel';

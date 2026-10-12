@@ -24,6 +24,7 @@ export const MIXES = [
 let installedIds = [];
 export async function refreshInstalled() {
   const all = await pack.cast();
+  names = Object.fromEntries(all.map((c) => [c.id, `${c.emoji} ${c.name}`]));
   installedIds = [];
   for (const c of all) if (await pack.installed(c.id)) installedIds.push(c.id);
   return installedIds;
@@ -45,9 +46,11 @@ function speaker() {
 /** True when a recorded voice is ready (otherwise the app falls back to the phone's voice). */
 export const ready = () => !!(talk.who.startsWith('mix') ? installedIds.length : installedIds.includes(talk.who));
 
-function line(keys, kind = 'event') {
+// Names for the lock-screen card.
+let names = {};
+function line(keys, kind = 'event', title = '') {
   const id = speaker();
-  return id ? pack.say(id, keys, { kind }) : false;
+  return id ? pack.say(id, keys, { kind, title: title || 'Spot-a-Crop', artist: names[id] || '' }) : false;
 }
 
 // ---------- land that isn't a crop ----------
@@ -68,15 +71,15 @@ const sideKey = { left: 'left', right: 'right', here: 'around', point: 'around' 
 const streak = {};          // side -> { code, since }
 
 /** The crops beside the road changed. items: [{side, code}] for sides whose crop just changed. */
-export function cropsChanged(items, isAg) {
+export function cropsChanged(items, isAg, label = '') {
   const now = Date.now();
   for (const it of items) streak[it.side] = { code: it.code, since: now };
   const crops = items.filter((it) => isAg(it.code) && !SPOT.has(it.code));
   const spots = items.filter((it) => SPOT.has(it.code));
   if (crops.length === 2 && crops[0].code === crops[1].code) {
-    line([`crop:${crops[0].code}:both`], 'crop');
+    line([`crop:${crops[0].code}:both`], 'crop', label);
   } else if (crops.length) {
-    line(crops.map((it) => `crop:${it.code}:${sideKey[it.side] || 'around'}`), 'crop');
+    line(crops.map((it) => `crop:${it.code}:${sideKey[it.side] || 'around'}`), 'crop', label);
   } else if (spots.length && talk.chatty !== 'crops' && since('spot') > gap('spot')) {
     if (line([`spot:${SPOT.get(spots[0].code)}`], 'extra')) mark('spot');
   }

@@ -1,4 +1,4 @@
-// First-launch walkthrough: five quick swipeable screens, skippable, replayable from the menu.
+// First-launch walkthrough: six quick swipeable screens, skippable, replayable from the menu.
 import { KERNEL_SVG, fx } from './fun.js';
 
 const KEY = 'fs.onboarded';
@@ -18,7 +18,13 @@ const STEPS = [
     art: `<div class="ob-strip"><div><small>◂ LEFT</small><b><i style="background:#ffc928">🌽</i>Corn</b><em>LIVE</em></div><div><small>RIGHT ▸</small><b><i style="background:#22c55e">🫘</i>Soybeans</b><em>LIVE</em></div></div>
       <div class="ob-car">🚗</div>`,
     title: 'Driving? We read both sides',
-    text: 'Tap <b>Start driving</b> and the top bar names the fields on your left and right, plus what’s coming up. Turn on <b>🔊 voice</b> and keep your eyes on the road.',
+    text: 'Tap <b>Start driving</b> and the top bar names the fields on your left and right, plus what’s coming up.',
+  },
+  {
+    art: `<div class="ob-cast">${[['🤠', 'Earl'], ['👵', 'Dot'], ['📣', 'Buck'], ['🌽', 'Kernel'], ['🎩', 'Nigel'], ['🕵️', 'Rye']].map(([e, n], i) => `<span style="--i:${i}"><i>${e}</i>${n}</span>`).join('')}</div>
+      <div class="ob-say">“Well, I’ll be. Corn on your left!”</div>`,
+    title: 'Pick a co-pilot 🎙️',
+    text: 'Tap <b>🔊</b> and choose who calls out the crops: a farmer, a grandma, a rodeo announcer, a film-noir detective and more. Eyes on the road, ears on the corn.',
   },
   {
     art: `<div class="ob-zoom"><span style="--c:#ffc928">IA 🌽 53%</span><span style="--c:#fb7a24">🌾 The Wheat Belt</span><span style="--c:#22c55e">🫘 Soybeans · 143 ac</span></div>`,

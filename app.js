@@ -11,7 +11,7 @@ import { parcelAt } from './parcels.js';
 import { BeltLayer, BELTS, nextFact, randomFact } from './belts.js';
 import { fieldCard, albumCard, shareCanvas, placeName, countyName } from './share.js';
 import { loadAlbum, loadRarity, recordSighting, recordState, albumHtml, albumSummary, celebrate, rarityOf } from './album.js';
-import { fx, kernel, settings, stats, saveStats, addMiles, checkBadges, badgesHtml, earned } from './fun.js';
+import { fx, kernel, setKernelQuiet, settings, stats, saveStats, addMiles, checkBadges, badgesHtml, earned } from './fun.js';
 import { bingoCard, bingoSpot, bingoHtml, guessRound, satelliteHtml, cropOfTheDay, cropFacts, cropBlurb, countyFacts } from './games.js';
 import { SeasonLayer, season } from './season.js';
 import { showOnboarding, onboarded } from './onboarding.js';
@@ -369,6 +369,7 @@ const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 const compass = (h) => COMPASS[Math.round(h / 45) % 8];
 
 function driveStatus(busy) {
+  if (state.mode !== 'drive') return;   // a lookup that finished after the drive ended
   const f = state.fix;
   if (!f) return setStatus('Finding GPS…', 'busy');
   const parts = [];
@@ -408,8 +409,27 @@ function follow(animate) {
   map.setView(map.unproject(p, z), z, { animate });
 }
 
+// Parked for a while? End the drive so GPS and the screen can rest.
+const PARKED_MS = 10 * 60e3;
+let parkAnchor = null, parkTimer = null;
+function watchParked(f) {
+  if (!parkAnchor || distM(parkAnchor, f) > 60) parkAnchor = { lat: f.lat, lon: f.lon, t: Date.now() };
+}
+function startParkWatch() {
+  parkAnchor = null;
+  clearInterval(parkTimer);
+  parkTimer = setInterval(() => {
+    if (state.mode !== 'drive') return clearInterval(parkTimer);
+    if (parkAnchor && Date.now() - parkAnchor.t > PARKED_MS && !new URLSearchParams(location.search).has('sim')) {
+      toast('🅿️ Looks like we’re parked. Ending the drive.');
+      stopDriving();
+    }
+  }, 30e3);
+}
+
 function onFix(f) {
   if (state.mode !== 'drive') return;   // a late fix after the drive ended
+  watchParked(f);
   state.prevFix = state.fix;
   state.fix = f;
   if (f.speed == null && state.prevFix) {
@@ -594,13 +614,25 @@ function rewardBadges() {
   }, 1200 + i * 3500));
 }
 
+// One toast at a time: extra ones wait their turn instead of piling up on screen.
+const toastQueue = [];
+let toastBusy = false;
 function toast(text) {
+  if (toastQueue.includes(text)) return;
+  toastQueue.push(text);
+  if (!toastBusy) nextToast();
+}
+function nextToast() {
+  const text = toastQueue.shift();
+  if (text == null) { toastBusy = false; return; }
+  toastBusy = true;
   const el = document.createElement('div');
   el.className = 'toast';
   el.textContent = text;
   document.body.appendChild(el);
-  setTimeout(() => el.classList.add('out'), 2800);
-  setTimeout(() => el.remove(), 3300);
+  const stay = toastQueue.length ? 1700 : 2600;   // move along faster when more are waiting
+  setTimeout(() => el.classList.add('out'), stay);
+  setTimeout(() => { el.remove(); nextToast(); }, stay + 450);
 }
 
 function openAlbum() {
@@ -828,6 +860,7 @@ function openDriveSheet() {
 
 function closeSheet() {
   if (!state.sheet) return;
+  if (state.mode === 'drive') setTimeout(syncDriveBar, 0);
   const wasTap = state.sheet === 'tap';
   state.sheet = null;
   state.tapSeq++;
@@ -1196,7 +1229,7 @@ let downloadCtl = null;
 // Plan a drive: route → forecast of what you'll pass (ribbon + totals) → start it, or save it offline.
 function openOffline(prefillTo = '') {
   showSheet('offline', `<article class="detail"><div class="lbl">Plan a drive</div>
-    <p class="predict">See what you'll drive past, then start the drive or save it for no-signal stretches. On Android you can also share a place from Google Maps to Spot-a-Crop.</p>
+    <p class="predict">See what you'll drive past, then start the drive or save it for no-signal stretches.${/Android/i.test(navigator.userAgent) ? ' You can also share a place from Google Maps to Spot-a-Crop.' : ''}</p>
     <form class="route-form" id="routeForm">
       <label>From<input name="from" placeholder="Current location" autocomplete="off"></label>
       <label>To<input name="to" placeholder="City, town or address" required autocomplete="off" value="${esc(prefillTo)}"></label>
@@ -1313,6 +1346,16 @@ els.sheetBody.addEventListener('click', async (e) => {
   else if (act === 'voice') openVoice();
   else if (act === 'vtoggle') { setVoice(!state.voice); b.classList.toggle('on', state.voice); b.querySelector('b').textContent = state.voice ? 'On' : 'Off'; }
   else if (act === 'vcast') pickCast(b);
+  else if (act === 'vdel') {
+    const c = castList.find((x) => x.id === b.dataset.v);
+    if (!confirm(`Remove ${c?.name || 'this voice'} from this phone? You can download it again any time.`)) return;
+    talk.hush();
+    await vpack.uninstall(b.dataset.v);
+    const left = await talk.refreshInstalled();
+    if (talk.talk.who === b.dataset.v || (talk.talk.who.startsWith('mix') && left.length < 2)) talk.talk.set('who', left[0] || 'earl');   // none left: next speaker tap offers the cast again
+    toast(`${c?.emoji || ''} ${c?.name || 'Voice'} removed`);
+    openVoice();
+  }
   else if (act === 'vwho') {
     talk.talk.set('who', b.dataset.v); fx('pop');
     els.sheetBody.querySelectorAll('.vcard.picked, [data-act="vwho"].picked').forEach((x) => x.classList.remove('picked'));
@@ -1397,7 +1440,11 @@ function announce(res) {
     items.push({ side, code: s.code, probably: s.tier === 'annual' });
   }
   if (cast) {
-    if (items.length) talk.cropsChanged(items, isAg);
+    if (items.length) {
+      // What the lock screen shows while the line plays, e.g. "◂ Corn · Soybeans ▸".
+      const label = items.map((it) => (it.side === 'left' ? `◂ ${prettyName(it.code)}` : it.side === 'right' ? `${prettyName(it.code)} ▸` : prettyName(it.code))).join(' · ');
+      talk.cropsChanged(items, isAg, label);
+    }
     talk.tick(res.sides);
   } else if (items.length) speak(phrase(items));
 }
@@ -1406,10 +1453,33 @@ function setVoice(on) {
   state.voice = on;
   localSet('fs.voice', on ? '1' : '0');
   els.voiceBtn.setAttribute('aria-pressed', String(on));
-  if (on) { state.lastSpoken = {}; if (talk.ready()) talk.voiceOn(); else speak(hello()); }
-  else { stopVoice(); talk.hush(); }
+  if (on) {
+    state.lastSpoken = {};
+    if (talk.ready()) talk.voiceOn();
+    // No character downloaded yet (and the basic phone voice wasn't chosen on purpose): offer the cast first.
+    else if (talk.talk.who !== 'phone' && castList.length && state.sheet !== 'voice') openVoice({ firstTime: true });
+    else speak(hello());
+  } else { stopVoice(); talk.hush(); }
+  syncDriveBar();
 }
 els.voiceBtn.addEventListener('click', () => setVoice(!state.voice));
+
+setKernelQuiet(() => state.mode === 'drive' && state.voice);
+// Lock screen and steering-wheel buttons: pause mutes the voice, play brings it back.
+vpack.onRemote((action) => setVoice(action === 'play' ? true : action === 'pause' ? false : !state.voice));
+
+// Driving mode: three big buttons instead of the map controls.
+const driveBar = $('driveBar');
+function syncDriveBar() {
+  driveBar.hidden = state.mode !== 'drive';
+  const who = talk.MIXES.find((m) => m.id === talk.talk.who)?.name || castName(talk.talk.who) || 'Voice';
+  $('dbVoiceName').textContent = state.voice ? (talk.ready() ? who : 'Voice on') : 'Voice off';
+  $('dbVoice').classList.toggle('off', !state.voice);
+  $('dbHead').setAttribute('aria-pressed', String(!!state.headingUp));
+}
+$('dbVoice').addEventListener('click', () => openVoice());
+$('dbHead').addEventListener('click', () => { setHeadingUp(!state.headingUp); syncDriveBar(); });
+$('dbEnd').addEventListener('click', () => stopDriving());
 
 // Tap the icon to tuck the top bar away to the side; tap again to bring it back.
 const brandBtn = $('brandBtn');
@@ -1457,6 +1527,8 @@ function startDriving() {
   state.driveStart = state.trip.total;
   state.driveMix = { ...state.trip.m };
   if (state.voice && talk.ready()) talk.driveStarted();
+  syncDriveBar();
+  startParkWatch();
 
   if (new URLSearchParams(location.search).has('sim')) return simulate();
   // iPhone app: location that keeps working with the screen locked (so voice keeps naming crops).
@@ -1489,7 +1561,7 @@ let castList = [];
 const castName = (id) => castList.find((c) => c.id === id)?.name;
 vpack.cast().then((c) => { castList = c; return talk.refreshInstalled(); }).catch(() => {});
 
-async function openVoice() {
+async function openVoice({ firstTime = false } = {}) {
   castList = await vpack.cast();
   const have = await talk.refreshInstalled();
   const who = talk.talk.who;
@@ -1499,7 +1571,10 @@ async function openVoice() {
       <span class="vemo">${c.emoji}</span><b>${esc(c.name)}</b><small>${esc(c.blurb)}</small>
       <em class="vget">${on ? (who === c.id ? 'Talking ✓' : 'Ready') : `Get · ${c.mb} MB`}</em><i class="vbar"><b></b></i></button>`;
   };
+  const haveRows = castList.filter((c) => have.includes(c.id));
+  const usedMB = haveRows.reduce((t, c) => t + (vpack.sizeMB(c.id) || c.mb), 0);
   showSheet('voice', `<article class="detail voice-sheet"><div class="lbl">🗣️ Voice</div>
+    ${firstTime ? '<div class="vhello"><b>Pick your co-pilot 🎙️</b><span>Real character voices that call out the crops as you drive. Tap one to download it and hear it.</span></div>' : ''}
     <div class="vtop">
       <button data-act="vtoggle" class="vswitch${state.voice ? ' on' : ''}"><span>Read crops out loud</span><b>${state.voice ? 'On' : 'Off'}</b></button>
       <button data-act="vtest" class="vtest">🔊 Hear it</button>
@@ -1508,7 +1583,8 @@ async function openVoice() {
     ${castList.length ? `<div class="vcast">${castList.map(card).join('')}</div>` : '<p class="predict">Couldn\'t load the cast. Check your connection.</p>'}
     <div class="vchips">${talk.MIXES.map((m) => `<button data-act="vwho" data-v="${m.id}" class="vchip${who === m.id ? ' picked' : ''}"${have.length < 2 ? ' disabled' : ''}>${m.emoji} ${m.name}</button>`).join('')}
       <button data-act="vwho" data-v="phone" class="vchip${!castList.some((c) => c.id === who) && !who.startsWith('mix') ? ' picked' : ''}">📱 Basic phone voice</button></div>
-    <p class="predict">${have.length < 2 ? 'Get two or more voices to mix them up. ' : ''}Each voice downloads once and works with no signal.</p>
+    <p class="predict">${have.length < 2 ? 'Get two or more voices to mix them up. ' : ''}Each voice is about 20 MB, downloads once (Wi-Fi is best), then works with no signal.</p>
+    ${haveRows.length ? `<div class="vhave"><span>On this phone · ${Math.round(usedMB)} MB</span>${haveRows.map((c) => `<button data-act="vdel" data-v="${c.id}" aria-label="Remove ${esc(c.name)}">${c.emoji} ${esc(c.name)} <i>✕</i></button>`).join('')}</div>` : ''}
     <div class="lbl">Chattiness</div>
     <div class="vchips">${talk.CHATTY.map((c) => `<button data-act="vchat" data-v="${c.id}" class="vchip${talk.talk.chatty === c.id ? ' picked' : ''}">${c.emoji} ${c.name}</button>`).join('')}</div>
     <p class="predict" id="chatHint">${esc(talk.CHATTY.find((c) => c.id === talk.talk.chatty)?.blurb || '')}</p>
@@ -1545,6 +1621,10 @@ async function pickCast(b) {
   els.sheetBody.querySelectorAll('[data-act="vwho"]').forEach((x) => { x.classList.remove('picked'); x.disabled = have.length < 2 && x.dataset.v !== 'phone'; });
   talk.hush();
   talk.preview(id, ['hello', 'crop:1:left']);
+  if (state.sheet === 'voice' && (els.sheetBody.querySelector('.vhello') || !els.sheetBody.querySelector(`[data-act="vdel"][data-v="${id}"]`))) {
+    const top = els.sheetBody.scrollTop;
+    await openVoice(); els.sheetBody.scrollTop = top;
+  }
 }
 function startNativeLocation() {
   startBackgroundLocation(onFix, (err) => {
@@ -1562,6 +1642,7 @@ function stopDriving() {
   if (isNative) { stopBackgroundLocation(); KeepAwake.allowSleep().catch(() => {}); }
   if (webWatch != null) { navigator.geolocation.clearWatch(webWatch); webWatch = null; }
   clearInterval(simTimer); simTimer = null;
+  clearInterval(parkTimer);
   wakeLock?.release?.().catch(() => {}); wakeLock = null;
   // The cast signs off with a recap of the drive's top crop.
   if (state.voice && talk.ready()) {
@@ -1573,6 +1654,7 @@ function stopDriving() {
   state.lastSpoken = {};
   els.strip.hidden = true;
   setStatus('Ready');
+  syncDriveBar();
   fx('bye');
   toast('Peas out! ✌️ Drive ended');
 }

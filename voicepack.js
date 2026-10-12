@@ -1,7 +1,7 @@
 // The recorded voice cast. Each character is one "pack": index.json (which lines exist for which
 // moment) + pack.bin (all the recorded lines, back to back). A pack is downloaded once and kept on
 // the phone. Lines are played one at a time, never repeating a line until its siblings have played.
-import { isNative } from './native.js';
+import { isNative, Filesystem } from './native.js';
 
 // Registered by the app itself (ios/App/App/AppViewController.swift), so it's reached through
 // Capacitor.Plugins rather than registerPlugin, and looked up when first used.
@@ -39,11 +39,45 @@ async function idb(mode, fn) {
   });
 }
 
+// On iPhone the packs live in the app's own files (Library, not backed up to iCloud): permanent, unlike
+// browser-style storage, which iOS may clear when the phone runs low on space. The website uses IndexedDB.
+const DIR = 'LIBRARY_NO_CLOUD';
+const diskPath = (id) => `voice/${id}.bin`;
+const idxKey = (id) => `fs.vidx.${id}`;
+function b64(u8) {
+  let s = '';
+  for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+async function diskLoad(id) {
+  const index = lget(idxKey(id), null);
+  if (!index) return null;
+  try {
+    const { uri } = await Filesystem.getUri({ path: diskPath(id), directory: DIR });
+    const r = await fetch(globalThis.Capacitor.convertFileSrc(uri));
+    if (!r.ok) return null;
+    const buf = await r.arrayBuffer();
+    return buf.byteLength >= (index.bytes || 1) ? { index, buf } : null;   // a half-written file doesn't count
+  } catch { return null; }
+}
+async function diskSave(id, index, u8, onProgress) {
+  await Filesystem.deleteFile({ path: diskPath(id), directory: DIR }).catch(() => {});
+  const CHUNK = 768 * 1024;   // multiple of 3, so base64 chunks join cleanly
+  for (let o = 0; o < u8.length; o += CHUNK) {
+    const data = b64(u8.subarray(o, o + CHUNK));
+    if (o === 0) await Filesystem.writeFile({ path: diskPath(id), directory: DIR, data, recursive: true });
+    else await Filesystem.appendFile({ path: diskPath(id), directory: DIR, data });
+    onProgress(0.9 + 0.1 * Math.min(1, (o + CHUNK) / u8.length));
+  }
+  lput(idxKey(id), index);
+}
+
 const packs = {};   // id -> { index, buf }
 /** Is this character's pack on the phone (any version)? */
 export async function installed(id) {
   if (packs[id]) return true;
-  const p = await idb('readonly', (s) => s.get(id)).catch(() => null);
+  let p = isNative ? await diskLoad(id) : null;
+  p ||= await idb('readonly', (s) => s.get(id)).catch(() => null);
   if (p) { packs[id] = p; return true; }
   return false;
 }
@@ -58,26 +92,36 @@ export async function install(id, onProgress = () => {}) {
   if (!r.ok) throw new Error(`download failed (${r.status})`);
   const total = idx.bytes || +r.headers.get('content-length') || 0;
   const reader = r.body.getReader(), chunks = [];
+  const share = isNative ? 0.9 : 1;   // the last 10% on iPhone is saving to disk
   let got = 0;
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
     chunks.push(value); got += value.length;
-    if (total) onProgress(Math.min(1, got / total));
+    if (total) onProgress(share * Math.min(1, got / total));
   }
   const buf = new Uint8Array(got);
   let o = 0;
   for (const c of chunks) { buf.set(c, o); o += c.length; }
   const pack = { index: idx, buf: buf.buffer };
-  await idb('readwrite', (s) => s.put(pack, id));
+  if (isNative) {
+    await diskSave(id, idx, buf, onProgress);
+    await idb('readwrite', (s) => s.delete(id)).catch(() => {});   // drop any older browser-storage copy
+  } else await idb('readwrite', (s) => s.put(pack, id));
   packs[id] = pack;
   onProgress(1);
   return pack;
 }
 export async function uninstall(id) {
   delete packs[id];
+  if (isNative) {
+    await Filesystem.deleteFile({ path: diskPath(id), directory: DIR }).catch(() => {});
+    try { localStorage.removeItem(idxKey(id)); } catch { /* fine */ }
+  }
   await idb('readwrite', (s) => s.delete(id)).catch(() => {});
 }
+/** Megabytes used by a downloaded voice (0 if not downloaded). */
+export const sizeMB = (id) => (packs[id] ? Math.round(packs[id].buf.byteLength / 1e5) / 10 : 0);
 
 // ---------- picking a line without repeats ----------
 // For each character+moment we remember the order we're working through; a fresh shuffle starts
@@ -110,15 +154,9 @@ function clip(id, key) {
 
 // ---------- playing ----------
 let ctx = null, webSrc = null;
-function b64(buf) {
-  let s = '';
-  const u = new Uint8Array(buf);
-  for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
-  return btoa(s);
-}
-async function playBuf(buf, volume = 1) {
+async function playBuf(buf, volume = 1, meta = {}) {
   if (isNative) {
-    const r = await clipPlayer().play({ data: b64(buf), volume }).catch(() => ({ completed: false }));
+    const r = await clipPlayer().play({ data: b64(new Uint8Array(buf)), volume, title: meta.title || 'Spot-a-Crop', artist: meta.artist || '' }).catch(() => ({ completed: false }));
     return r.completed;
   }
   ctx ||= new (window.AudioContext || window.webkitAudioContext)();
@@ -145,12 +183,12 @@ export const quietFor = () => (busy ? 0 : Date.now() - lastEnd);
  * kind: 'crop' (replaces queued crop calls), 'event' (queued), 'extra' (skipped unless quiet).
  * Returns false if the character has no line for the first key.
  */
-export function say(id, keys, { kind = 'event', volume = 1 } = {}) {
+export function say(id, keys, { kind = 'event', volume = 1, title = '', artist = '' } = {}) {
   keys = [].concat(keys).filter((k) => hasLine(id, k));
   if (!keys.length) return false;
   if (kind === 'extra' && (busy || queue.length)) return false;
   if (kind === 'crop') for (let i = queue.length - 1; i >= 0; i--) if (queue[i].kind === 'crop') queue.splice(i, 1);
-  queue.push({ id, keys, kind, volume, at: Date.now() });
+  queue.push({ id, keys, kind, volume, title, artist, at: Date.now() });
   pump();
   return true;
 }
@@ -163,7 +201,7 @@ async function pump() {
   try {
     for (const k of job.keys) {
       const buf = clip(job.id, k);
-      if (buf) await playBuf(buf, job.volume);
+      if (buf) await playBuf(buf, job.volume, job);
     }
   } catch { /* a bad clip shouldn't stop the show */ }
   busy = false; lastEnd = Date.now();
@@ -173,4 +211,9 @@ export function hush() {
   queue.length = 0;
   if (isNative) clipPlayer()?.stop().catch(() => {});
   else try { webSrc?.stop(); } catch { /* not playing */ }
+}
+
+/** Lock-screen / steering-wheel buttons (iPhone app): cb('pause' | 'play' | 'toggle'). */
+export function onRemote(cb) {
+  if (isNative) clipPlayer()?.addListener?.('remote', (e) => cb(e.action));
 }
