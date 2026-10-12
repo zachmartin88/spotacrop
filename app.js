@@ -113,7 +113,8 @@ map.attributionControl.addAttribution('Crops: USDA NASS, GMU CSISS');
 // Keep map labels out from under the top bar, bottom panels and the map buttons.
 function mapInsets() {
   const top = document.querySelector('.hud').getBoundingClientRect().bottom;
-  const panels = [els.sheet, els.welcome, els.legend].filter((e) => !e.hidden && e.offsetParent)
+  // Full-width things along the bottom that labels must stay clear of (the driving buttons included).
+  const panels = [els.sheet, els.welcome, els.legend, document.getElementById('driveBar')].filter((e) => e && !e.hidden && e.offsetParent)
     .map((e) => e.getBoundingClientRect()).filter((r) => r.width > window.innerWidth * 0.9);
   return { top, bottom: Math.max(76, ...panels.map((r) => window.innerHeight - r.top)) };
 }
