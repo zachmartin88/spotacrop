@@ -73,6 +73,15 @@
    "lines": 1097
   },
   {
+   "id": "hank",
+   "name": "Coach Hank",
+   "emoji": "🧢",
+   "blurb": "Hype coach",
+   "version": "63a2622846",
+   "mb": 20.5,
+   "lines": 1093
+  },
+  {
    "id": "rye",
    "name": "Detective Rye",
    "emoji": "🕵️",
