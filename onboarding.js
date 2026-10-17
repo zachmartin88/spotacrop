@@ -1,4 +1,4 @@
-// First-launch walkthrough: six quick swipeable screens, skippable, replayable from the menu.
+// First-launch walkthrough: three quick swipeable screens, skippable, replayable from the menu.
 import { KERNEL_SVG, fx } from './fun.js';
 
 const KEY = 'fs.onboarded';
@@ -16,31 +16,15 @@ const STEPS = [
   },
   {
     art: `<div class="ob-strip"><div><small>◂ LEFT</small><b><i style="background:#ffc928">🌽</i>Corn</b><em>LIVE</em></div><div><small>RIGHT ▸</small><b><i style="background:#22c55e">🫘</i>Soybeans</b><em>LIVE</em></div></div>
-      <div class="ob-car">🚗</div>`,
-    title: 'Driving? We read both sides',
-    text: 'Tap <b>Start driving</b> and the top bar names the fields on your left and right, plus what’s coming up.',
-  },
-  {
-    art: `<div class="ob-cast">${[['🤠', 'Earl'], ['👵', 'Dot'], ['📣', 'Buck'], ['🌽', 'Kernel'], ['🎩', 'Nigel'], ['🕵️', 'Rye']].map(([e, n], i) => `<span style="--i:${i}"><i>${e}</i>${n}</span>`).join('')}</div>
-      <div class="ob-say">“Well, I’ll be. Corn on your left!”</div>`,
-    title: 'Pick a co-pilot 🎙️',
-    text: 'Tap <b>🔊</b> and choose who calls out the crops: a farmer, a grandma, a rodeo announcer, a film-noir detective and more. Eyes on the road, ears on the corn.',
-  },
-  {
-    art: `<div class="ob-zoom"><span style="--c:#ffc928">IA 🌽 53%</span><span style="--c:#fb7a24">🌾 The Wheat Belt</span><span style="--c:#22c55e">🫘 Soybeans · 143 ac</span></div>`,
-    title: 'Explore the map',
-    text: 'Colors are crops (the <b>⁘ key</b> explains them). Zoom from states to counties to single fields, and <b>tap anything</b> for its story, history, and fun facts.',
+      <div class="ob-cast">${[['🤠', 'Earl'], ['👵', 'Dot'], ['📣', 'Buck'], ['🌽', 'Kernel'], ['🎩', 'Nigel']].map(([e, n], i) => `<span style="--i:${i}"><i>${e}</i>${n}</span>`).join('')}</div>`,
+    title: 'Drive and listen',
+    text: 'Tap <b>Start driving</b> and the top bar names the fields on your left and right. Tap <b>🔊</b> to pick a co-pilot who calls them out, so your eyes stay on the road.',
   },
   {
     art: `<div class="ob-cards">${[['#ffc928', '🌽'], ['#38bdf8', '🍚'], ['#d946ef', '🍇']].map(([b, e], i) => `<i style="background:${b};--r:${(i - 1) * 9}deg">${e}</i>`).join('')}</div>
-      <div class="ob-games"><span>🎯 Bingo</span><span>🧩 Guess the crop</span><span>🏅 Badges</span></div>`,
-    title: 'Collect & play',
-    text: 'Drive past a crop to <b>collect its card</b>. Rare ones glow. Play <b>road-trip bingo</b>, guess crops from the sky, and earn badges. It’s all in the <b>☰ menu</b>.',
-  },
-  {
-    art: `<div class="ob-share"><div class="ob-card"><b>🌽</b><span>Corn</span><small>📍 Story County, Iowa</small></div><div class="ob-spark">✨</div></div>`,
-    title: 'Share your finds',
-    text: 'Turn any field into a postcard for friends. When you start driving we’ll ask for your location. It’s only used to look up the fields around you. No account needed, and your trips stay on your phone.',
+      <div class="ob-games"><span>🃏 Cards</span><span>🎯 Bingo</span><span>🏅 Badges</span></div>`,
+    title: 'Tap, collect, share',
+    text: '<b>Tap any field</b> for its story. Collect a card for every crop you pass, play road-trip bingo, and share your finds. No account, and your trips stay on your phone.',
     last: true,
   },
 ];

@@ -848,3 +848,4 @@ body.driving .kernel { bottom: calc(var(--safe-bottom) + 150px); }
 .ob-cast i { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: rgba(232,193,112,.14); border: 1.5px solid rgba(232,193,112,.5); font-size: 24px; font-style: normal; }
 .ob-say { margin-top: 12px; padding: 8px 14px; border-radius: 14px 14px 14px 4px; background: #fff; color: #1a1408; font-weight: 700; font-size: 14px; }
 body.sheet-open .welcome { display: none; }
+.ob-strip + .ob-cast { margin-top: 14px; }

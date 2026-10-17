@@ -506,7 +506,6 @@ async function collect(res) {
       if (st && recordState(state.album, st)) {
         toast(`🗺️ New state stamp: ${p.state}!`);
         fx('ding');
-        kernel(`Welcome to <b>${esc(p.state)}</b>! 🗺️ New stamp for your album.`);
         rewardBadges();
       }
     });
@@ -515,14 +514,16 @@ async function collect(res) {
     if (!['live', 'live-changed', 'annual'].includes(s.tier)) continue;
     const r = recordSighting(state.album, s.code, { ...here, place: state.place?.short });
     if (r && (r.isNew || r.levelUp)) {
-      celebrate(document.body, s.code, r.card, { levelUp: r.levelUp });
-      fx('card');
+      const rar = rarityOf(s.code);
+      // Pop-up budget: the big card animation only for a first-ever card or a rare-or-better find.
+      // Everything else is a small toast (level-ups make no pop-up at all).
+      const firstEver = r.isNew && albumSummary(state.album).got <= 1;
+      if (r.isNew && (firstEver || rar.id !== 'common')) { celebrate(document.body, s.code, r.card, {}); fx('card'); }
+      else if (r.isNew) { toast(`🃏 New card: ${cropEmoji(s.code)} ${prettyName(s.code)}`); fx('pop'); }
       submitScore();
       if (r.isNew) {
-        const rar = rarityOf(s.code);
         if (state.voice && talk.ready()) talk.newCard(s.code, rar.id !== 'common');
         else speak(`New card: ${prettyName(s.code)}!`);
-        if (rar.id !== 'common') setTimeout(() => kernel(`Whoa, a <b>${rar.name.toLowerCase()}</b> card! ${cropEmoji(s.code)} Not everyone finds one of those.`, { mood: 'excited' }), 3200);
       }
       rewardBadges();
     }
@@ -531,10 +532,10 @@ async function collect(res) {
     if (b) {
       fx(b.newLines ? 'win' : 'pop');
       if (state.voice && talk.ready()) talk.bingo(b.newLines > 0);
-      toast(`🎯 Bingo square: ${cropEmoji(s.code)} ${prettyName(s.code)}`);
+      // Squares are marked quietly (a sound and the bingo card itself); only a full line gets a pop-up.
       if (b.newLines) {
         stats.bingos += b.newLines; saveStats();
-        setTimeout(() => kernel(b.blackout ? '🌟 <b>BLACKOUT!</b> You found every crop on today\'s card!' : '🎯 <b>BINGO!</b> Three in a row!', { mood: 'excited', ms: 6000 }), 600);
+        toast(b.blackout ? '🌟 BLACKOUT! Every crop on today\'s card!' : '🎯 BINGO! Three in a row!');
         rewardBadges();
       }
     }
@@ -611,7 +612,6 @@ function rewardBadges() {
   fresh.forEach((b, i) => setTimeout(() => {
     fx('ding');
     toast(`🏅 Badge unlocked: ${b.emoji} ${b.name}`);
-    kernel(`You earned the <b>${b.emoji} ${esc(b.name)}</b> badge! ${esc(b.desc)}.`, { mood: 'excited' });
   }, 1200 + i * 3500));
 }
 
@@ -1722,10 +1722,11 @@ else addEventListener('pointerdown', () => fx('hello'), { once: true });
   const greet = () => {
     if (localGet('fs.kernelDay') === new Date().toDateString()) return;
     localSet('fs.kernelDay', new Date().toDateString());
-    setTimeout(() => kernel(`It's ${sn.name.toLowerCase()}! ${sn.emoji} Tap a glowing region for fun facts, or try today's bingo in the ☰ menu.`, { ms: 7000 }), 900);
+    setTimeout(() => kernel(`It's ${sn.name.toLowerCase()}! ${sn.emoji} Tap any field for its story.`, { ms: 5000 }), 1500);
   };
   const q = new URLSearchParams(location.search);
-  if (!onboarded() && !q.has('at') && !q.has('text')) showOnboarding({ onDone: greet });
+  // First launch: the walkthrough is plenty; Kernel's daily hello starts the next day.
+  if (!onboarded() && !q.has('at') && !q.has('text')) { localSet('fs.kernelDay', new Date().toDateString()); showOnboarding(); }
   else greet();
 }
 els.headBtn.setAttribute('aria-pressed', String(state.headingUp));
