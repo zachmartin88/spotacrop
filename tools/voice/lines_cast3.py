@@ -29,7 +29,7 @@ T = {
                  "{X} on the left. So chill."],
         'right': ["Duuude, {x} on the right.", "Whoa, {x} on the right, bro.", "Right side, {x}. Gnarly.", "Check it, {x} on the right, man.",
                   "{X} on the right. So chill."],
-        'around': ["Dude, it's {x} everywhere. Like a {x} ocean.", "Total {x} vibes all around, man."],
+        'around': ["Dude, it's {x} everywhere. Like an ocean of {x}.", "Total {x} vibes all around, man."],
         'both': ["{X} on both sides, bro! Double gnarly!", "{X} left and right. Radical."],
     },
     'hank': {
@@ -45,7 +45,7 @@ T = {
                  "On the left... {x}. Nobody ever suspects the {x}.", "{X}, left side. It's always the quiet ones."],
         'right': ["{X}. On the right. Something's not right about it.", "Right side. {X}. I've seen this before.", "{X} on the right. Keep your eyes open, kid.",
                   "On the right... {x}. Nobody ever suspects the {x}.", "{X}, right side. It's always the quiet ones."],
-        'around': ["{X}, everywhere I look. [sigh] This town's got a {x} problem.", "We're surrounded by {x}. No way out, kid."],
+        'around': ["{X}, everywhere I look. [sigh] This town's crawling with {x}.", "We're surrounded by {x}. No way out, kid."],
         'both': ["{X} on both sides. They've got us cornered.", "{X} left and right. Classic setup."],
     },
     'delphine': {

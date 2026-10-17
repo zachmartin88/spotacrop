@@ -100,26 +100,96 @@ def main(chars):
         print(f'  {ch} done: {len(todo) - len(failed)} recorded, {len(failed)} failed after 3 tries, {(time.time() - t0) / 60:.0f} min', flush=True)
         json.dump(failed, open(d / 'failed.json', 'w'), indent=1)
         pack(ch, mine, d)
+        if os.environ.get('BEST', '1') == '1':
+            best_pass(ch, mine, d, tb, ref)
+            pack(ch, mine, d)
+
+# ---------------------------------------------------------------- best of three
+# The lines people hear most get two extra takes; the clearest, liveliest one is kept.
+BEST_CROPS = (1, 5, 37, 24, 36, 2)
+def is_best(key):
+    if key.startswith('crop:'):
+        _, code, side = key.split(':')
+        return int(code) in BEST_CROPS and side in ('left', 'right')
+    return key.startswith('state:') or key.startswith('start:') or key in ('hello', 'end', 'card')
+
+def liveliness(path):
+    import librosa, numpy as np
+    y, sr = librosa.load(str(path), sr=16000)
+    f0, voiced, _ = librosa.pyin(y, fmin=70, fmax=600, sr=sr)
+    f0 = f0[voiced & ~np.isnan(f0)]
+    pr = float(np.std(12 * np.log2(f0 / np.median(f0)))) if len(f0) > 10 else 0.0
+    rms = librosa.feature.rms(y=y)[0]
+    return pr + 0.5 * float(np.std(20 * np.log10(rms[rms > 1e-4] + 1e-9)))
+
+def best_pass(ch, mine, d, tb, ref):
+    from weak import defects
+    lines, seen = [], set()
+    for l in mine:
+        if is_best(l['key']) and l['id'] not in seen and (d / f"{l['id']}.m4a").exists() and not (d / f"{l['id']}.best").exists():
+            lines.append(l); seen.add(l['id'])
+    print(f'{ch}: best-of-three for {len(lines)} lines', flush=True)
+    tb.prepare_conditionals(str(ref))
+    t0, swapped = time.time(), 0
+    for n, l in enumerate(lines, 1):
+        cur = d / f"{l['id']}.m4a"
+        takes = [cur]
+        for k in range(2):
+            w = tb.generate(l['text'], temperature=0.8 + 0.1 * k)
+            raw = d / f"raw_{l['id']}.wav"
+            sf.write(str(raw), w.squeeze(0).cpu().numpy(), tb.sr)
+            alt = d / f"alt{k}_{l['id']}.m4a"
+            polish_to_m4a(raw, alt); raw.unlink(missing_ok=True)
+            takes.append(alt)
+        scored = []
+        for t in takes:
+            ok, sc, _ = check(t, spoken(l['text']), 0.85)
+            bad = defects(t, spoken(l['text']))
+            scored.append(((ok and not bad), sc >= 0.95, liveliness(t), t))
+        scored.sort(key=lambda x: x[:3], reverse=True)
+        win = scored[0][3]
+        if win != cur and scored[0][0]:
+            win.replace(cur); swapped += 1
+        for t in takes[1:]:
+            t.unlink(missing_ok=True)
+        (d / f"{l['id']}.best").touch()
+        if n % 25 == 0:
+            rate = (time.time() - t0) / n
+            print(f'  {ch} best {n}/{len(lines)}  {rate:.1f}s/line  ~{(len(lines) - n) * rate / 60:.0f} min left  swapped {swapped}', flush=True)
+    print(f'  {ch} best-of done: {swapped} of {len(lines)} lines got a better take', flush=True)
+
+# Packs ship smaller copies (AAC 32 kbps, made with Apple's encoder) of the 48 kbps masters: about a third smaller,
+# and for speech you can't hear the difference.
+def small(f, d):
+    out = d / 'small' / f.name
+    if not out.exists() or out.stat().st_mtime < f.stat().st_mtime:
+        out.parent.mkdir(exist_ok=True)
+        ff('-i', str(f), '-c:a', 'aac_at', '-b:a', '32k', '-movflags', '+faststart', str(out))
+    return out
 
 def pack(ch, mine, d):
     out = SITE / ch; out.mkdir(parents=True, exist_ok=True)
-    keys, blob = {}, bytearray()
+    keys, blob, texts, at = {}, bytearray(), {}, {}
     for l in mine:
         f = d / f"{l['id']}.m4a"
         if not f.exists():
             continue
-        b = f.read_bytes()
-        keys.setdefault(l['key'], []).append([len(blob), len(b)])
-        blob += b
+        if l['id'] not in at:   # a line used for two moments is stored once
+            b = small(f, d).read_bytes()
+            at[l['id']] = (len(blob), len(b))
+            blob += b
+        keys.setdefault(l['key'], []).append([*at[l['id']], l['id']])
+        texts[l['id']] = re.sub(r'\s*\[[a-z ]+\]\s*', ' ', l['text']).strip()
     version = hashlib.sha1(bytes(blob)).hexdigest()[:10]
     (out / 'pack.bin').write_bytes(bytes(blob))
     json.dump({'id': ch, 'version': version, 'bytes': len(blob), 'keys': keys}, open(out / 'index.json', 'w'), separators=(',', ':'))
+    json.dump(texts, open(out / 'text.json', 'w'), separators=(',', ':'), ensure_ascii=False)   # captions for share clips
     c = CAST[ch]
     castf = SITE / 'cast.json'
     cast = json.load(open(castf)) if castf.exists() else {'cast': []}
     cast['cast'] = [x for x in cast['cast'] if x['id'] != ch] + [{
         'id': ch, 'name': c['name'], 'emoji': c['emoji'], 'blurb': c['blurb'], 'version': version,
-        'mb': round(len(blob) / 1e6, 1), 'lines': sum(len(v) for v in keys.values()),
+        'mb': round(len(blob) / 1e6, 1), 'lines': len(at),
     }]
     order = list(CAST)
     cast['cast'].sort(key=lambda x: order.index(x['id']) if x['id'] in order else 99)

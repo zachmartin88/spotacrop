@@ -20,6 +20,13 @@ export function cast() {
   return castP;
 }
 
+let duosP = null;
+/** The two-character scenes ("duets") the cast can act out in Take turns. */
+export function duos() {
+  duosP ||= fetch(`${BASE}duos.json`, { cache: 'no-cache' }).then((r) => r.json()).then((j) => j.duos || []).catch(() => { duosP = null; return []; });
+  return duosP;
+}
+
 // ---------- storage (IndexedDB, works on the website and in the app) ----------
 const DB = 'spotacrop-voice';
 function db() {
@@ -61,14 +68,18 @@ async function diskLoad(id) {
   } catch { return null; }
 }
 async function diskSave(id, index, u8, onProgress) {
-  await Filesystem.deleteFile({ path: diskPath(id), directory: DIR }).catch(() => {});
+  // Written to a temp file first, so an update that's cut off halfway leaves the old voice working.
+  const tmp = `${diskPath(id)}.part`;
+  await Filesystem.deleteFile({ path: tmp, directory: DIR }).catch(() => {});
   const CHUNK = 768 * 1024;   // multiple of 3, so base64 chunks join cleanly
   for (let o = 0; o < u8.length; o += CHUNK) {
     const data = b64(u8.subarray(o, o + CHUNK));
-    if (o === 0) await Filesystem.writeFile({ path: diskPath(id), directory: DIR, data, recursive: true });
-    else await Filesystem.appendFile({ path: diskPath(id), directory: DIR, data });
+    if (o === 0) await Filesystem.writeFile({ path: tmp, directory: DIR, data, recursive: true });
+    else await Filesystem.appendFile({ path: tmp, directory: DIR, data });
     onProgress(0.9 + 0.1 * Math.min(1, (o + CHUNK) / u8.length));
   }
+  await Filesystem.deleteFile({ path: diskPath(id), directory: DIR }).catch(() => {});
+  await Filesystem.rename({ from: tmp, to: diskPath(id), directory: DIR, toDirectory: DIR });
   lput(idxKey(id), index);
 }
 
@@ -112,6 +123,24 @@ export async function install(id, onProgress = () => {}) {
   onProgress(1);
   return pack;
 }
+/** Downloaded voices with a newer recording on the website (new lines, better takes). */
+export async function outdated() {
+  const out = [];
+  for (const c of await cast()) if ((await installed(c.id)) && packs[c.id].index.version !== c.version) out.push(c.id);
+  return out;
+}
+/** Quietly bring downloaded voices up to date, one at a time. The old pack keeps playing until the new one is saved. */
+let updating = null;
+export function updateAll(isBusy = () => false) {
+  updating ||= (async () => {
+    for (const id of await outdated()) {
+      if (isBusy()) break;
+      try { await install(id); } catch { break; }   // no signal: try again next launch
+    }
+    updating = null;
+  })();
+  return updating;
+}
 export async function uninstall(id) {
   delete packs[id];
   if (isNative) {
@@ -145,11 +174,27 @@ function pickIndex(id, key, n) {
 /** Does this character have a line for this moment? */
 export function hasLine(id, key) { return !!packs[id]?.index.keys[key]?.length; }
 
+const played = [];   // the last few lines heard: {id, key, clip, at}
+/** Most recent first. clip is the line's recording id (matches voice/<id>/text.json and the recording tools). */
+export const recent = () => played.slice().reverse();
 function clip(id, key) {
   const p = packs[id], list = p?.index.keys[key];
   if (!list?.length) return null;
-  const [off, len] = list[pickIndex(id, key, list.length)];
+  const [off, len, cid] = list[pickIndex(id, key, list.length)];
+  played.push({ id, key, clip: cid || `${key}#${off}`, version: p.index.version, at: Date.now(), off, len });
+  if (played.length > 12) played.shift();
   return p.buf.slice(off, off + len);
+}
+/** The raw recording of a line that played recently (for making a share clip). */
+export function clipBytes(item) {
+  const p = packs[item.id];
+  return p && p.index.version === item.version ? p.buf.slice(item.off, item.off + item.len) : null;
+}
+/** What each line says, for captions. Fetched only when needed. */
+const textsP = {};
+export function texts(id) {
+  textsP[id] ||= fetch(`${BASE}${id}/text.json?v=${packs[id]?.index.version || ''}`).then((r) => (r.ok ? r.json() : {})).catch(() => { delete textsP[id]; return {}; });
+  return textsP[id];
 }
 
 // ---------- playing ----------
@@ -211,6 +256,20 @@ export function hush() {
   queue.length = 0;
   if (isNative) clipPlayer()?.stop().catch(() => {});
   else try { webSrc?.stop(); } catch { /* not playing */ }
+}
+
+/** A few seconds of a character, shipped with the app, so they can be heard before downloading. */
+export async function preview(id) {
+  hush();
+  try {
+    const r = await fetch(`previews/${id}.m4a`);
+    if (!r.ok) return false;
+    const buf = await r.arrayBuffer();
+    queue.length = 0;
+    busy = true;
+    try { await playBuf(buf, 1, { title: 'Spot-a-Crop', artist: '' }); } finally { busy = false; lastEnd = Date.now(); }
+    return true;
+  } catch { return false; }
 }
 
 /** Lock-screen / steering-wheel buttons (iPhone app): cb('pause' | 'play' | 'toggle'). */

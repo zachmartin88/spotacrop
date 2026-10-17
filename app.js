@@ -10,6 +10,7 @@ import { scanRoute, summarize, nearestStop } from './ahead.js';
 import { parcelAt } from './parcels.js';
 import { BeltLayer, BELTS, nextFact, randomFact } from './belts.js';
 import { fieldCard, albumCard, shareCanvas, placeName, countyName } from './share.js';
+import { recapCard, clipVideo, canMakeClip, shareBlob, canvasBlob } from './recap.js';
 import { loadAlbum, loadRarity, recordSighting, recordState, albumHtml, albumSummary, celebrate, rarityOf } from './album.js';
 import { fx, kernel, setKernelQuiet, settings, stats, saveStats, addMiles, checkBadges, badgesHtml, earned } from './fun.js';
 import { bingoCard, bingoSpot, bingoHtml, guessRound, satelliteHtml, cropOfTheDay, cropFacts, cropBlurb, countyFacts } from './games.js';
@@ -18,7 +19,7 @@ import { showOnboarding, onboarded } from './onboarding.js';
 import { say, stop as stopVoice, phrase, hello, sample } from './voice.js';
 import * as talk from './talk.js';
 import * as vpack from './voicepack.js';
-import { isNative, KeepAwake, StatusBar, App as NativeApp, startBackgroundLocation, stopBackgroundLocation, nativePositionOnce, scheduleDailyCrops, cancelDailyCrops } from './native.js';
+import { isNative, KeepAwake, StatusBar, Share, App as NativeApp, startBackgroundLocation, stopBackgroundLocation, nativePositionOnce, scheduleDailyCrops, cancelDailyCrops } from './native.js';
 
 const $ = (id) => document.getElementById(id);
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -503,6 +504,7 @@ async function collect(res) {
       state.place = p;
       const st = p ? Object.entries(STATE_ABBR).find(([, n]) => n === p.state)?.[0] : null;
       if (st && state.mode === 'drive' && state.voice && talk.ready()) talk.enteredState(st);
+      if (p && state.driveLog && state.driveLog.states.at(-1) !== p.state) state.driveLog.states.push(p.state);
       if (st && recordState(state.album, st)) {
         toast(`🗺️ New state stamp: ${p.state}!`);
         fx('ding');
@@ -521,6 +523,7 @@ async function collect(res) {
       if (r.isNew && (firstEver || rar.id !== 'common')) { celebrate(document.body, s.code, r.card, {}); fx('card'); }
       else if (r.isNew) { toast(`🃏 New card: ${cropEmoji(s.code)} ${prettyName(s.code)}`); fx('pop'); }
       submitScore();
+      if (r.isNew && state.driveLog) state.driveLog.cards.push(s.code);
       if (r.isNew) {
         if (state.voice && talk.ready()) talk.newCard(s.code, rar.id !== 'common');
         else speak(`New card: ${prettyName(s.code)}!`);
@@ -1372,6 +1375,15 @@ els.sheetBody.addEventListener('click', async (e) => {
     if (talk.ready()) { talk.hush(); talk.newDrive(); talk.voiceOn(); } else say(sample());
   }
   else if (act === 'enddrive') { closeSheet(); stopDriving(); }
+  else if (act === 'recap') openRecap();
+  else if (act === 'sharerecap') {
+    const cv = await recapCard(state.recap || driveSummary());
+    await shareBlob(await canvasBlob(cv), { filename: 'spot-a-crop-drive.png', title: 'My Spot-a-Crop drive', text: `${state.recap?.miles || ''} miles of crops on Spot-a-Crop 🌽🫘🌾` });
+  }
+  else if (act === 'clips') openClips();
+  else if (act === 'clipgo') makeClip(+b.dataset.i);
+  else if (act === 'vprev') { e.stopPropagation(); b.classList.add('talk'); await vpack.preview(b.dataset.v); b.classList.remove('talk'); }
+  else if (act === 'vflags') sendFlags();
   else if (act === 'startdrive') { closeSheet(); startDriving(); }
   else if (act === 'guess') openGuess();
   else if (act === 'guessed') answerGuess(+b.dataset.code, b);
@@ -1446,16 +1458,17 @@ function announce(res) {
       const label = items.map((it) => (it.side === 'left' ? `◂ ${prettyName(it.code)}` : it.side === 'right' ? `${prettyName(it.code)} ▸` : prettyName(it.code))).join(' · ');
       talk.cropsChanged(items, isAg, label);
     }
-    talk.tick(res.sides);
+    talk.tick(res.sides, state.fix?.speed);
   } else if (items.length) speak(phrase(items));
 }
 
-function setVoice(on) {
+async function setVoice(on) {
   state.voice = on;
   localSet('fs.voice', on ? '1' : '0');
   els.voiceBtn.setAttribute('aria-pressed', String(on));
   if (on) {
     state.lastSpoken = {};
+    if (!talk.ready()) await talk.refreshInstalled().catch(() => {});   // right after launch the downloaded voices may not be checked yet
     if (talk.ready()) talk.voiceOn();
     // No character downloaded yet (and the basic phone voice wasn't chosen on purpose): offer the cast first.
     else if (talk.talk.who !== 'phone' && castList.length && state.sheet !== 'voice') openVoice({ firstTime: true });
@@ -1477,10 +1490,34 @@ function syncDriveBar() {
   $('dbVoiceName').textContent = state.voice ? (talk.ready() ? who : 'Voice on') : 'Voice off';
   $('dbVoice').classList.toggle('off', !state.voice);
   $('dbHead').setAttribute('aria-pressed', String(!!state.headingUp));
+  $('dbMeh').hidden = !(state.voice && talk.ready());
 }
 $('dbVoice').addEventListener('click', () => openVoice());
 $('dbHead').addEventListener('click', () => { setHeadingUp(!state.headingUp); syncDriveBar(); });
 $('dbEnd').addEventListener('click', () => stopDriving());
+
+// 👎 while driving: "that line was off". Remembered on the phone; sent only if you choose to (voice settings).
+const flags = () => { try { return JSON.parse(localStorage.getItem('fs.flags') || '[]'); } catch { return []; } };
+$('dbMeh').addEventListener('click', () => {
+  const last = vpack.recent()[0];
+  if (!last || Date.now() - last.at > 60e3) return toast('Nothing played just now');
+  const list = flags().filter((f) => f.clip !== last.clip);
+  list.push({ id: last.id, key: last.key, clip: last.clip, v: last.version, at: Date.now() });
+  localSet('fs.flags', JSON.stringify(list.slice(-200)));
+  fx('pop');
+  toast('👎 Flagged. Thanks, that helps!');
+});
+async function sendFlags() {
+  const list = flags();
+  if (!list.length) return;
+  const text = `Spot-a-Crop voice lines that sounded off (${list.length}):\n` + list.map((f) => `${f.id} ${f.key} ${f.clip}`).join('\n');
+  try {
+    if (isNative) await Share.share({ title: 'Spot-a-Crop voice feedback', text, dialogTitle: 'Send flagged lines' });
+    else if (navigator.share) await navigator.share({ title: 'Spot-a-Crop voice feedback', text });
+    else { await navigator.clipboard.writeText(text); toast('Copied. Paste it in a message to us.'); return; }
+    if (confirm('Sent? Clear the flagged list?')) { localSet('fs.flags', '[]'); openVoice(); }
+  } catch { /* cancelled */ }
+}
 
 // Tap the icon to tuck the top bar away to the side; tap again to bring it back.
 const brandBtn = $('brandBtn');
@@ -1527,6 +1564,7 @@ function startDriving() {
   state.trip.last = null;   // don't count the gap since the last drive
   state.driveStart = state.trip.total;
   state.driveMix = { ...state.trip.m };
+  state.driveLog = { cards: [], states: [], who: null, when: new Date() };
   if (state.voice && talk.ready()) talk.driveStarted();
   syncDriveBar();
   startParkWatch();
@@ -1561,6 +1599,8 @@ function voiceSummary() {
 let castList = [];
 const castName = (id) => castList.find((c) => c.id === id)?.name;
 vpack.cast().then((c) => { castList = c; return talk.refreshInstalled(); }).catch(() => {});
+// New lines and better takes for downloaded voices come down quietly, never mid-drive.
+setTimeout(() => vpack.updateAll(() => state.mode === 'drive').then(() => talk.refreshInstalled()).catch(() => {}), 8000);
 
 async function openVoice({ firstTime = false } = {}) {
   castList = await vpack.cast();
@@ -1568,9 +1608,10 @@ async function openVoice({ firstTime = false } = {}) {
   const who = talk.talk.who;
   const card = (c) => {
     const on = have.includes(c.id);
-    return `<button data-act="vcast" data-v="${c.id}" class="vcard${who === c.id ? ' picked' : ''}${on ? ' have' : ''}">
+    return `<div class="vwrap"><button data-act="vcast" data-v="${c.id}" class="vcard${who === c.id ? ' picked' : ''}${on ? ' have' : ''}">
       <span class="vemo">${c.emoji}</span><b>${esc(c.name)}</b><small>${esc(c.blurb)}</small>
-      <em class="vget">${on ? (who === c.id ? 'Talking ✓' : 'Ready') : `Get · ${c.mb} MB`}</em><i class="vbar"><b></b></i></button>`;
+      <em class="vget">${on ? (who === c.id ? 'Talking ✓' : 'Ready') : 'Get'}</em><i class="vbar"><b></b></i></button>
+      <button data-act="vprev" data-v="${c.id}" class="vprev" aria-label="Hear ${esc(c.name)}">▶</button></div>`;
   };
   const haveRows = castList.filter((c) => have.includes(c.id));
   const usedMB = haveRows.reduce((t, c) => t + (vpack.sizeMB(c.id) || c.mb), 0);
@@ -1584,11 +1625,13 @@ async function openVoice({ firstTime = false } = {}) {
     ${castList.length ? `<div class="vcast">${castList.map(card).join('')}</div>` : '<p class="predict">Couldn\'t load the cast. Check your connection.</p>'}
     <div class="vchips">${talk.MIXES.map((m) => `<button data-act="vwho" data-v="${m.id}" class="vchip${who === m.id ? ' picked' : ''}"${have.length < 2 ? ' disabled' : ''}>${m.emoji} ${m.name}</button>`).join('')}
       <button data-act="vwho" data-v="phone" class="vchip${!castList.some((c) => c.id === who) && !who.startsWith('mix') ? ' picked' : ''}">📱 Basic phone voice</button></div>
-    <p class="predict">${have.length < 2 ? 'Get two or more voices to mix them up. ' : ''}Each voice is about 20 MB, downloads once (Wi-Fi is best), then works with no signal.</p>
+    <p class="predict">Tap ▶ to hear anyone first. ${have.length < 2 ? 'Get two or more voices to mix them up (in Take turns they even talk to each other). ' : ''}Each voice is about ${Math.round(castList.reduce((t, c) => t + c.mb, 0) / (castList.length || 1))} MB, downloads once (Wi-Fi is best), then works with no signal.</p>
     ${haveRows.length ? `<div class="vhave"><span>On this phone · ${Math.round(usedMB)} MB</span>${haveRows.map((c) => `<button data-act="vdel" data-v="${c.id}" aria-label="Remove ${esc(c.name)}">${c.emoji} ${esc(c.name)} <i>✕</i></button>`).join('')}</div>` : ''}
     <div class="lbl">Chattiness</div>
     <div class="vchips">${talk.CHATTY.map((c) => `<button data-act="vchat" data-v="${c.id}" class="vchip${talk.talk.chatty === c.id ? ' picked' : ''}">${c.emoji} ${c.name}</button>`).join('')}</div>
     <p class="predict" id="chatHint">${esc(talk.CHATTY.find((c) => c.id === talk.talk.chatty)?.blurb || '')}</p>
+    ${flags().length ? `<div class="lbl">Lines you flagged</div><p class="predict">You flagged ${plural(flags().length, 'line')} with 👎 while driving. Send the list so the voices get fixed.</p>
+      <div class="sheet-actions"><button class="ghost" data-act="vflags">📨 Send flagged lines</button></div>` : ''}
   </article>`);
 }
 
@@ -1657,8 +1700,66 @@ function stopDriving() {
   setStatus('Ready');
   syncDriveBar();
   fx('bye');
-  toast('Peas out! ✌️ Drive ended');
+  // A real drive gets a recap (and something to share); a quick test just gets a toast.
+  if (state.trip.total - (state.driveStart || 0) >= 3200) openRecap();
+  else toast('Peas out! ✌️ Drive ended');
 }
+
+// ---------- the drive recap ----------
+function driveSummary() {
+  const drove = state.trip.total - (state.driveStart || 0);
+  const mix = Object.entries(state.trip.m).map(([k, v]) => [k, v - (state.driveMix?.[k] || 0)]).filter(([, v]) => v > 1);
+  const farm = mix.filter(([k]) => k !== 'none' && isAg(+k)).sort((a, b) => b[1] - a[1]);
+  const farmM = farm.reduce((t, [, v]) => t + v, 0);
+  const who = talk.ready() ? (talk.talk.who.startsWith('mix') ? { emoji: '🎭', name: 'the whole cast' } : castList.find((c) => c.id === talk.talk.who)) : null;
+  return {
+    miles: miles(drove), farmPct: drove ? Math.round(farmM / drove * 100) : 0,
+    top: farm.map(([k, v]) => ({ code: +k, mi: v / 1609.34 })), cards: state.driveLog?.cards || [], states: state.driveLog?.states || [],
+    who: who ? { emoji: who.emoji, name: who.name } : null, when: state.driveLog?.when || new Date(),
+  };
+}
+function openRecap() {
+  const d = state.recap = driveSummary();
+  const lines = state.voice && talk.ready() ? vpack.recent().filter((x) => !x.key.startsWith('name:')).slice(0, 6) : [];
+  showSheet('recap', `<article class="detail recap"><div class="lbl">Drive ended · peas out ✌️</div>
+    <div class="trip-sum"><div><b>${d.miles}</b><span>miles</span></div><div><b>${d.farmPct}%</b><span>farmland</span></div><div><b>${d.top.length}</b><span>${d.top.length === 1 ? 'crop' : 'crops'}</span></div></div>
+    ${d.top.length ? `<div class="recap-top">${d.top.slice(0, 5).map((r) => `<span style="--c:${cropColor(r.code)}">${cropEmoji(r.code)} ${esc(prettyName(r.code))}</span>`).join('')}</div>` : ''}
+    ${d.cards.length ? `<p class="predict">🃏 ${plural(d.cards.length, 'new card')}: ${d.cards.map((c) => `${cropEmoji(c)} ${esc(prettyName(c))}`).join(', ')}</p>` : ''}
+    <div class="sheet-actions"><button class="primary" data-act="sharerecap">🖼️ Share drive</button>${lines.length && canMakeClip() ? '<button class="ghost" data-act="clips">🎬 Voice clip</button>' : '<button class="ghost" data-act="close">Done</button>'}</div></article>`);
+}
+async function openClips() {
+  const lines = vpack.recent().filter((x) => !x.key.startsWith('name:')).slice(0, 6);
+  const caps = {};
+  for (const id of new Set(lines.map((l) => l.id))) caps[id] = await vpack.texts(id);
+  state.clipLines = lines.map((l) => ({ ...l, caption: caps[l.id]?.[l.clip] || '' }));
+  showSheet('clips', `<article class="detail"><div class="lbl">🎬 Share a voice clip</div>
+    <p class="predict">Pick a line from your drive. It becomes a short video you can post or send.</p>
+    <div class="clip-list">${state.clipLines.map((l, i) => {
+      const c = castList.find((x) => x.id === l.id);
+      return `<button data-act="clipgo" data-i="${i}" class="clip-row"><span>${c?.emoji || '🎙️'}</span><b>${esc(l.caption || 'A line from your drive')}</b><i>${esc(c?.name || '')}</i></button>`;
+    }).join('')}</div>
+    <div class="sheet-actions"><button class="ghost" data-act="recap">Back</button></div></article>`);
+}
+async function makeClip(i) {
+  const l = state.clipLines?.[i], bytes = l && vpack.clipBytes(l);
+  if (!bytes) return toast('That line isn\'t available any more');
+  const c = castList.find((x) => x.id === l.id) || { emoji: '🎙️', name: 'Spot-a-Crop', blurb: '' };
+  showSheet('clips', '<article class="detail"><div class="lbl">🎬 Making your clip…</div><p class="predict">Recording it now. It plays as it records.</p></article>');
+  talk.hush();
+  try {
+    const crop = /^crop:(\d+)/.exec(l.key)?.[1];
+    const blob = await clipVideo({ bytes, caption: l.caption, who: c, crop: crop != null ? +crop : null });
+    const ext = blob.type.includes('webm') ? 'webm' : 'mp4';
+    await shareBlob(blob, { filename: `spot-a-crop-${l.id}.${ext}`, title: 'Spot-a-Crop', text: `${c.emoji} ${c.name} calling the crops on my drive 🌽` });
+  } catch { toast('Couldn\'t make the clip on this device'); }
+  openRecap();
+}
+
+
+// Home-screen widget taps open spotacrop://cotd.
+if (isNative) NativeApp.addListener('appUrlOpen', ({ url }) => {
+  if (/cotd/.test(url || '') && state.mode !== 'drive') { enterExplore(null, true); openCropOfDay(); }
+});
 
 // iPhone app: with voice off nothing needs location while the app is in the background, so pause it.
 if (isNative) NativeApp.addListener('appStateChange', ({ isActive }) => {

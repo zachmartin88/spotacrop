@@ -518,6 +518,22 @@ for d, add in ((STATE_T, r3.STATE_T), (BELT_T, r3.BELT_T), (FACT_T, r3.FACT_T), 
 # Earl's welcome gets more Southern too.
 STATE_T['earl'] = "Well, welcome to {S}, partner. The {N}. {F}"
 
+# ---------------------------------------------------------------- round 4 cast + new moments
+import lines_cast4 as r4
+CHARS = CHARS + r4.NEW
+T.update(r4.T)
+for d, add in ((FLAVOR, r4.FLAVOR), (MOMENTS, r4.MOMENTS), (STREAK_CROP, r4.STREAK_CROP), (HARVEST, r4.HARVEST), (SPOTS, r4.SPOTS)):
+    for k, by in add.items():
+        d.setdefault(k, {}).update(by)
+for d, add in ((STATE_T, r4.STATE_T), (BELT_T, r4.BELT_T), (FACT_T, r4.FACT_T), (JOKE_T, r4.JOKE_T), (MILES_T, r4.MILES_T),
+               (AHEAD_T, r4.AHEAD_T), (RECAP_T, r4.RECAP_T), (BANTER, r4.BANTER)):
+    d.update(add)
+lines_memes.EXTRA.update(r4.EXTRA)
+# Lines Whisper (and listeners) kept mishearing, said a clearer way.
+MOMENTS['hello']['penny'] = ["Hi hi! Lettuce begin!", "Okay, I'm so ready. Let's spot some crops!"]
+SPOTS['woods']['sam'] = ["Some woods along here.", "Passing some forest."]
+NAME_SAY = {27: 'rye, like the bread', 22: 'durum wheat, the pasta kind'}
+
 # ---------------------------------------------------------------- build
 def cap(s):
     return s[:1].upper() + s[1:]
@@ -535,11 +551,14 @@ def build(chars=CHARS):
                 picks = rnd.sample(temps, min(n, len(temps)))
                 for t in picks:
                     pun = rnd.choice(PUNS.get(code, GENERIC_PUNS))
-                    add(char, f'crop:{code}:{side}', t.replace('{X}', cap(x)).replace('{x}', x).replace('{pun}', pun))
+                    text = t.replace('{X}', cap(x)).replace('{x}', x).replace('{pun}', pun)
+                    text = text.replace('the a mix', 'the mix').replace('the an orchard', 'the orchard').replace('that a mix', 'that mix').replace('that an orchard', 'that orchard')
+                    add(char, f'crop:{code}:{side}', text)
             for line in FLAVOR.get(char, {}).get(code, []):
                 add(char, f'flavor:{code}', line)
             # One-word lines come out garbled, so names are said in a short sentence.
-            add(char, f'name:{code}', f"It's {name.lower() if name[:1].isupper() and name not in ('Christmas trees',) else name}{'.' if char == 'sam' else '!'}")
+            said = NAME_SAY.get(code) or (name.lower() if name[:1].isupper() and name not in ('Christmas trees',) else name)
+            add(char, f'name:{code}', f"It's {said}{'.' if char == 'sam' else '!'}")
         for spot, by in SPOTS.items():
             for line in by.get(char, []):
                 add(char, f'spot:{spot}', line)
@@ -575,6 +594,7 @@ def build(chars=CHARS):
         for key, more in lines_memes.EXTRA.get(char, {}).items():
             for line in more:
                 add(char, key, line)
+        r4.extend(add, char, CROPS, JOKE_T, FACT_T, cap)
     return out
 
 if __name__ == '__main__':

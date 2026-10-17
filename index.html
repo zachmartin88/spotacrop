@@ -90,10 +90,11 @@
       <svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>
     </button>
   </div>
-  <!-- Driving mode: three big buttons replace the map controls while a drive is on -->
+  <!-- Driving mode: a few big buttons replace the map controls while a drive is on -->
   <div class="drivebar" id="driveBar" hidden>
     <button id="dbVoice" aria-label="Voice settings"><span class="dbi">🔊</span><b id="dbVoiceName">Voice</b></button>
     <button id="dbHead" aria-label="Turn the map to face the way you're driving" aria-pressed="false"><span class="dbi">🧭</span></button>
+    <button id="dbMeh" aria-label="That line sounded off" title="That line sounded off" hidden><span class="dbi">👎</span></button>
     <button id="dbEnd" class="end"><span class="dbi">🛑</span><b>End drive</b></button>
   </div>
   <button class="icon-btn recenter" id="recenterBtn" title="Follow my location" hidden>

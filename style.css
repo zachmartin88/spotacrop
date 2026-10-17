@@ -806,6 +806,17 @@ body.booting .map-ctl, body.booting .legend { animation: rise .55s .12s cubic-be
 .vcard .vbar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: transparent; }
 .vcard .vbar b { display: block; height: 100%; width: 0; background: var(--gold); transition: width .2s; }
 .vcard.loading { opacity: .85; }
+.vwrap { position: relative; min-width: 0; display: grid; }
+.vprev { position: absolute; bottom: 7px; right: 7px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 11px; color: var(--gold); background: rgba(232,193,112,.1); border: 1px solid rgba(232,193,112,.35); }
+.vprev.talk { background: var(--gold); color: #1a1408; animation: wiggle .5s ease-in-out infinite; }
+.recap-top { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.recap-top span { padding: 6px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: rgba(255,255,255,.04); border: 1px solid var(--line-soft); box-shadow: inset 3px 0 0 var(--c); }
+.clip-list { display: grid; gap: 6px; }
+.clip-row { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; text-align: left; padding: 10px 12px;
+  border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid var(--line-soft); }
+.clip-row span { grid-row: span 2; font-size: 24px; align-self: center; }
+.clip-row b { font-size: 14px; line-height: 1.3; } .clip-row i { font-style: normal; font-size: 12px; color: var(--muted); }
 .vchip:disabled { opacity: .4; }
 
 /* ---------- collapsible top bar: tap the icon to tuck it to the side ---------- */
@@ -829,14 +840,15 @@ body.bar-min .map-hint { top: calc(var(--safe-top) + var(--gutter)); }
 
 /* ---------- driving mode: big simple controls, nothing extra ---------- */
 .drivebar { position: fixed; z-index: 900; left: var(--gutter); right: var(--gutter); bottom: calc(var(--safe-bottom) + var(--gutter) + 8px);
-  display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; max-width: 520px; margin: 0 auto; animation: rise .35s cubic-bezier(.2, 1.2, .4, 1) both; }
+  display: grid; grid-template-columns: 1fr auto auto 1fr; gap: 8px; max-width: 520px; margin: 0 auto; animation: rise .35s cubic-bezier(.2, 1.2, .4, 1) both; }
 .drivebar button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 54px; padding: 0 14px; border-radius: 16px;
   background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line-soft);
   font-size: 15.5px; font-weight: 800; box-shadow: 0 8px 24px -12px rgba(0,0,0,.7); min-width: 0; }
 .drivebar button b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .drivebar .dbi { font-size: 19px; }
 .drivebar #dbVoice.off { color: var(--muted); } .drivebar #dbVoice.off .dbi { filter: grayscale(1); opacity: .6; }
-.drivebar #dbHead { min-width: 54px; } .drivebar #dbHead[aria-pressed="true"] { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+.drivebar #dbHead, .drivebar #dbMeh { min-width: 54px; } .drivebar #dbMeh[hidden] { display: none; }
+.drivebar:has(#dbMeh[hidden]) { grid-template-columns: 1fr auto 1fr; } .drivebar #dbHead[aria-pressed="true"] { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
 .drivebar .end { border-color: rgba(227,154,91,.45); color: var(--warn); }
 body.driving .map-ctl, body.driving .legend, body.driving .key { display: none !important; }
 body.sheet-open .drivebar { display: none; }
@@ -849,3 +861,4 @@ body.driving .kernel { bottom: calc(var(--safe-bottom) + 150px); }
 .ob-say { margin-top: 12px; padding: 8px 14px; border-radius: 14px 14px 14px 4px; background: #fff; color: #1a1408; font-weight: 700; font-size: 14px; }
 body.sheet-open .welcome { display: none; }
 .ob-strip + .ob-cast { margin-top: 14px; }
+.recap .trip-sum { grid-template-columns: repeat(3, 1fr); }

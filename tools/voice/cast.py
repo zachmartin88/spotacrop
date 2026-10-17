@@ -63,4 +63,31 @@ CAST = {
         'ref': "Darling, <gasp> you will not believe what happened! He said he loved me, and then he left! Just like that! "
                "<sigh> Oh, it's all too much. Pour me a glass of something, I simply must sit down.",
     },
+    # Round 4
+    'cornbeard': {
+        'name': 'Captain Cornbeard', 'emoji': '🏴‍☠️', 'blurb': 'Pirate captain (port is left!)', 'base': 'orpheus', 'voice': 'dan', 'pitch': 0.95,
+        'ref': "Arr, ahoy there, matey! <laugh> Welcome aboard me ship. Hoist the sails and raise the anchor, "
+               "we be sailing for treasure today! Land ho, off the port bow! Now that's a sight to warm an old pirate's heart.",
+    },
+    'al': {
+        'name': 'Auctioneer Al', 'emoji': '🔨', 'blurb': 'Fast-talking auctioneer', 'base': 'kokoro', 'voice': 'am_eric', 'speed': 1.18, 'pitch': 1.0, 'exag': 1.2,
+        'ref': "Alright folks, here we go, here we go! Who'll give me a hundred, a hundred, now two, now two, do I hear three? "
+               "Three in the back, thank you sir! Going once, going twice, sold! To the gentleman in the green hat!",
+    },
+    'tyler': {
+        'name': 'Tyler', 'emoji': '🙄', 'blurb': 'Bored teenager', 'base': 'kokoro', 'voice': 'am_liam', 'speed': 0.95, 'pitch': 1.02, 'exag': 0.45,
+        'ref': "Ugh. Okay. So we're just, like, driving. Cool. Great. I love this. Mom said I have to put my phone away, "
+               "so now I'm looking at fields. Wow. A field. Amazing. Can we stop for snacks? Please?",
+    },
+    'zib': {
+        'name': 'Zib Zorble', 'emoji': '👽', 'blurb': 'Alien tourist', 'base': 'kokoro', 'voice': 'af_nova', 'speed': 1.0, 'pitch': 1.04, 'exag': 0.9,
+        'ref': "Greetings, Earthling! I come in peace. And for sightseeing! Your planet is so very green. "
+               "What are these tall plants? You eat them? Fascinating! On my planet, we only eat moon rocks. They are crunchy.",
+    },
+    'mortimer': {
+        'name': 'Mortimer Gourd', 'emoji': '🎃', 'blurb': 'Spooky storyteller', 'base': 'kokoro', 'voice': 'bm_lewis', 'speed': 0.86, 'pitch': 0.95, 'exag': 0.65,
+        'ref': "Good evening. Come closer. Closer. I have a story for you. Long ago, on a night much like this one, "
+               "the wind whispered through the corn. And the pumpkins... began to glow. Spooky? Perhaps. But only a little.",
+    },
 }
+

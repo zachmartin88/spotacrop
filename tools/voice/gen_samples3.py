@@ -88,6 +88,41 @@ LINES = {
         "Pumpkins! [gasp] Oh, it's all too much! I need to sit down. I am sitting down.",
         "Still corn. It's always corn. Story of my life, darling.",
     ],
+    'cornbeard': [
+        "Arr, corn off the port bow! That's your left, matey!",
+        "Soybeans to starboard! Starboard be right, landlubber.",
+        "Ahoy, Iowa! The Hawkeye State! Iowa grows more corn than any other state. Arr!",
+        "A rare treasure! Rarer than gold doubloons!",
+        "Still corn! A whole ocean of it! [laugh]",
+    ],
+    'al': [
+        "On the left, corn! Do I hear a bid? Sold!",
+        "Right side, soybeans, going once, going twice, sold!",
+        "Welcome to Kansas, folks, the Sunflower State! Sold!",
+        "New card, folks! Sold, to you!",
+        "Folks, who'll give me a hundred for this view? A hundred, a hundred, sold!",
+    ],
+    'tyler': [
+        "Corn. On the left. Cool, I guess.",
+        "Ugh. Soybeans on the right.",
+        "We're in Iowa now. The Hawkeye State. Cool.",
+        "Wait. That's a rare one? Okay, sick.",
+        "It's been the same crop for like an hour.",
+    ],
+    'zib': [
+        "On your left, Earthling, corn. Fascinating.",
+        "Right side! The humans call this soybeans.",
+        "Greetings, Nebraska! The humans call you the Cornhusker State.",
+        "A rare specimen! My planet will be so jealous!",
+        "Still corn. Earth must really love corn.",
+    ],
+    'mortimer': [
+        "On the left... corn. Or is it?",
+        "Soybeans, to the right. They say it rustles at night.",
+        "We now enter Illinois. The Prairie State. [chuckle] Welcome.",
+        "Pumpkins! [gasp] My people! My beautiful, glowing people.",
+        "Still corn. Row after row. They all look the same. [chuckle]",
+    ],
 }
 
 def ff(*args):

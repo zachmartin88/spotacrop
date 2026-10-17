@@ -9,7 +9,7 @@ const FILES = [
   'index.html', 'style.css', 'config.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
   ...fs.readdirSync(ROOT).filter((f) => f.endsWith('.js') && !['sw.js'].includes(f)),
 ];
-const DIRS = ['data', 'vendor'];
+const DIRS = ['data', 'vendor', 'previews'];
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });

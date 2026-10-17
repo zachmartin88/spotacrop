@@ -22,8 +22,10 @@ export const MIXES = [
 
 // ---------- who's talking ----------
 let installedIds = [];
+let duos = [];   // two-character scenes for "Take turns": [{id, crop, steps: [who, ...]}]
 export async function refreshInstalled() {
   const all = await pack.cast();
+  if (!duos.length) pack.duos().then((d) => { duos = d; });
   names = Object.fromEntries(all.map((c) => [c.id, `${c.emoji} ${c.name}`]));
   installedIds = [];
   for (const c of all) if (await pack.installed(c.id)) installedIds.push(c.id);
@@ -89,9 +91,57 @@ export function cropsChanged(items, isAg, label = '') {
   }
 }
 
+// ---------- seasons and holidays ----------
+function seasonKeys(d = new Date()) {
+  const m = d.getMonth() + 1, day = d.getDate(), keys = [];
+  keys.push(m >= 9 && m <= 11 ? 'season:fall' : m === 12 || m <= 2 ? 'season:winter' : m <= 5 ? 'season:spring' : 'season:summer');
+  if (m === 10 && day >= 15) keys.push('holiday:halloween', 'holiday:halloween');
+  if (m === 11 && day >= 20 && day <= 30) keys.push('holiday:thanksgiving', 'holiday:thanksgiving');
+  if (m === 12 && day >= 10 && day <= 26) keys.push('holiday:christmas', 'holiday:christmas');
+  if ((m === 12 && day === 31) || (m === 1 && day <= 2)) keys.push('holiday:newyear', 'holiday:newyear');
+  if (m === 7 && day <= 5) keys.push('holiday:july4', 'holiday:july4');
+  return keys;
+}
+
+// ---------- duets ("Take turns" only) ----------
+function duet(sides) {
+  if (talk.who !== 'mix-line' || installedIds.length < 2) return false;
+  const near = new Set(Object.values(sides).map((s) => s?.code));
+  const ok = duos.filter((d) => d.steps.every((w, i) => installedIds.includes(w) && pack.hasLine(w, `duo:${d.id}:${i}`)) && (d.crop == null || near.has(d.crop)));
+  if (!ok.length) return false;
+  const seen = lget('fs.duosHeard', []);
+  const fresh = ok.filter((d) => !seen.includes(d.id));
+  const d = (fresh.length ? fresh : ok)[Math.floor(Math.random() * (fresh.length || ok.length))];
+  lput('fs.duosHeard', fresh.length ? [...seen, d.id] : [d.id]);
+  d.steps.forEach((who, i) => pack.say(who, [`duo:${d.id}:${i}`], { kind: 'event', title: 'Spot-a-Crop', artist: names[who] || '' }));
+  return true;
+}
+
+// ---------- speed ----------
+const pace = { fastSince: 0, slowSince: 0 };
+function speedCheck(mps) {
+  if (mps == null || talk.chatty === 'crops') return;
+  const now = Date.now();
+  // Over about 80 mph for a minute: a gentle "ease up", at most every 15 minutes.
+  if (mps > 35.8) { pace.fastSince ||= now; } else pace.fastSince = 0;
+  if (pace.fastSince && now - pace.fastSince > 60e3 && since('fast') > 15 * 60e3) {
+    if (line(['speed:fast'], 'event')) { mark('fast'); pace.fastSince = 0; }
+  }
+  // Crawling in traffic (moving, but under about 10 mph) for two minutes: a little company.
+  if (mps > 0.8 && mps < 4.5) { pace.slowSince ||= now; } else pace.slowSince = 0;
+  if (pace.slowSince && now - pace.slowSince > 120e3 && since('slow') > 20 * 60e3) {
+    if (line(['speed:slow'], 'extra')) { mark('slow'); pace.slowSince = 0; }
+  }
+}
+
 /** Called every few seconds while driving with the current sides: long same-crop stretches get a quip. */
-export function tick(sides) {
+export function tick(sides, mps = null) {
+  speedCheck(mps);
   if (talk.chatty === 'crops') return;
+  // Water on both sides at once: a bridge or a causeway.
+  if (sides.left?.code === 111 && sides.right?.code === 111 && since('bridge') > 5 * 60e3) {
+    if (line(['spot:bridge'], 'extra')) { mark('bridge'); return; }
+  }
   const stretch = talk.chatty === 'chatty' ? 5 * 60e3 : 9 * 60e3;
   for (const [side, s] of Object.entries(sides)) {
     const st = streak[side];
@@ -104,7 +154,8 @@ export function tick(sides) {
   // Quiet stretch: a fact, a joke or some banter.
   if (pack.quietFor() > 90e3 && since('extra') > gap('extra')) {
     const code = sides.left?.code ?? sides.here?.code;
-    const pool = talk.chatty === 'chatty' ? [`fact:${code}`, 'fact', 'joke', 'banter', 'meme', 'meme'] : [`fact:${code}`, 'fact', 'meme'];
+    if (talk.who === 'mix-line' && Math.random() < (talk.chatty === 'chatty' ? 0.4 : 0.25) && duet(sides)) { mark('extra'); return; }
+    const pool = talk.chatty === 'chatty' ? [`fact:${code}`, 'fact', 'joke', 'banter', 'meme', 'meme', ...seasonKeys()] : [`fact:${code}`, 'fact', 'meme', ...seasonKeys()];
     const k = pool[Math.floor(Math.random() * pool.length)];
     if (line([k], 'extra') || line(['fact'], 'extra')) mark('extra');
   }
