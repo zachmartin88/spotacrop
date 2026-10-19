@@ -31,7 +31,7 @@ export class SeasonLayer {
   update() {
     const on = !calm() && !this.isDriving() && this.map.getZoom() <= 10;
     if (on && !this.box.children.length) {
-      for (let i = 0; i < 14; i++) {
+      for (let i = 0; i < 6; i++) {   // a few, so the map stays calm
         const el = document.createElement('span');
         el.textContent = this.s.bits[i % this.s.bits.length];
         el.style.left = `${Math.random() * 100}%`;

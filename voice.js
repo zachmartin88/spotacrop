@@ -1,6 +1,6 @@
 // Who reads the crops out loud, how fast, and in what style.
 // The phone's own voices are used (iPhone ships fun ones like Grandpa, Bahh and Superstar).
-import { isNative, TextToSpeech } from './native.js';
+import { isNative, TextToSpeech, testMuted } from './native.js';
 import { prettyName } from './data.js';
 import { cropPun } from './puns.js';
 
@@ -73,6 +73,7 @@ export async function listVoices() {
 
 /** Say something in the chosen voice. Returns when it's handed to the speech engine. */
 export async function say(text, { rate = prefs.rate, uri = prefs.uri } = {}) {
+  if (testMuted) return;
   if (isNative) {
     let voice;
     if (uri) voice = (await listVoices()).find((v) => v.uri === uri)?.index;

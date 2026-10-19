@@ -65,7 +65,7 @@ export function bingoHtml(card) {
     <div class="bingo">${card.cells.map((c, i) => c === 'free'
       ? '<div class="bcell free on"><span>🌟</span><small>Free</small></div>'
       : `<div class="bcell${card.marked[i] ? ' on' : ''}" style="--c:${cropColor(c)}"><span>${cropEmoji(c)}</span><small>${prettyName(c)}</small>${card.marked[i] ? '<i>✓</i>' : ''}</div>`).join('')}</div>
-    <p class="predict">Drive past each crop to stamp it. Three in a row wins${card.won.length ? ` · <b>${card.won.length} bingo${card.won.length > 1 ? 's' : ''} today! 🎉</b>` : ''}. A new card every day.</p>`;
+    <p class="predict">Three in a row wins${card.won.length ? ` · <b>${card.won.length} bingo${card.won.length > 1 ? 's' : ''} today! 🎉</b>` : ''}.</p>`;
 }
 
 // =====================================================================

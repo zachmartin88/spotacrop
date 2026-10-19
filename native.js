@@ -3,6 +3,8 @@
 const Cap = globalThis.Capacitor;
 const register = globalThis.capacitorExports?.registerPlugin ?? Cap?.registerPlugin; // capacitor.js, injected into the app build
 // Without the runtime the app falls back to the web code paths instead of crashing.
+// Test runs (?sim or ?mute) make no sound at all, unless ?sound is added.
+export const testMuted = typeof location !== 'undefined' && /[?&](sim|mute)\b/.test(location.search) && !/[?&]sound\b/.test(location.search);
 export const isNative = !!Cap?.isNativePlatform?.() && typeof register === 'function';
 const plugin = (name) => (isNative ? register(name) : null);
 

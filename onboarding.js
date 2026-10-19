@@ -12,19 +12,19 @@ const STEPS = [
       ['#ffc928', '🌽'], ['#22c55e', '🫘'], ['#fb7a24', '🌾'], ['#ffc928', '🌽'], ['#a78bfa', '🌿'], ['#22c55e', '🫘'],
     ].map(([b, e]) => tile(b, e)).join('')}</div>`,
     title: 'Hi! I’m Kernel 🌽',
-    text: 'Spot-a-Crop shows what’s growing in fields across the lower 48, straight from <b>this season’s satellite crop map</b>.',
+    text: 'See what’s growing in any field in the lower 48, from <b>this season’s satellite map</b>.',
   },
   {
     art: `<div class="ob-strip"><div><small>◂ LEFT</small><b><i style="background:#ffc928">🌽</i>Corn</b><em>LIVE</em></div><div><small>RIGHT ▸</small><b><i style="background:#22c55e">🫘</i>Soybeans</b><em>LIVE</em></div></div>
       <div class="ob-cast">${[['🤠', 'Earl'], ['👵', 'Dot'], ['📣', 'Buck'], ['🌽', 'Kernel'], ['🎩', 'Nigel']].map(([e, n], i) => `<span style="--i:${i}"><i>${e}</i>${n}</span>`).join('')}</div>`,
     title: 'Drive and listen',
-    text: 'Tap <b>Start driving</b> and the top bar names the fields on your left and right. Tap <b>🔊</b> to pick a co-pilot who calls them out, so your eyes stay on the road.',
+    text: 'Tap <b>Start driving</b>. A co-pilot calls out the crops, so your eyes stay on the road.',
   },
   {
     art: `<div class="ob-cards">${[['#ffc928', '🌽'], ['#38bdf8', '🍚'], ['#d946ef', '🍇']].map(([b, e], i) => `<i style="background:${b};--r:${(i - 1) * 9}deg">${e}</i>`).join('')}</div>
       <div class="ob-games"><span>🃏 Cards</span><span>🎯 Bingo</span><span>🏅 Badges</span></div>`,
     title: 'Tap, collect, share',
-    text: '<b>Tap any field</b> for its story. Collect a card for every crop you pass, play road-trip bingo, and share your finds. No account, and your trips stay on your phone.',
+    text: '<b>Tap any field</b> for its story, and collect a card for every crop you pass.',
     last: true,
   },
 ];

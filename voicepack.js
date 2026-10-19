@@ -1,7 +1,7 @@
 // The recorded voice cast. Each character is one "pack": index.json (which lines exist for which
 // moment) + pack.bin (all the recorded lines, back to back). A pack is downloaded once and kept on
 // the phone. Lines are played one at a time, never repeating a line until its siblings have played.
-import { isNative, Filesystem } from './native.js';
+import { isNative, Filesystem, testMuted } from './native.js';
 
 // Registered by the app itself (ios/App/App/AppViewController.swift), so it's reached through
 // Capacitor.Plugins rather than registerPlugin, and looked up when first used.
@@ -200,6 +200,7 @@ export function texts(id) {
 // ---------- playing ----------
 let ctx = null, webSrc = null;
 async function playBuf(buf, volume = 1, meta = {}) {
+  if (testMuted) volume = 0;
   if (isNative) {
     const r = await clipPlayer().play({ data: b64(new Uint8Array(buf)), volume, title: meta.title || 'Spot-a-Crop', artist: meta.artist || '' }).catch(() => ({ completed: false }));
     return r.completed;

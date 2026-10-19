@@ -2,7 +2,7 @@
 // a caption), both sent through the phone's share sheet.
 import { prettyName } from './data.js';
 import { cropColor, cropEmoji } from './palette.js';
-import { isNative, Filesystem, Share } from './native.js';
+import { isNative, Filesystem, Share, testMuted } from './native.js';
 
 const FONT = 'Inter, -apple-system, "Segoe UI", Roboto, sans-serif';
 const SITE = 'zachmartin88.github.io/spotacrop';
@@ -113,7 +113,7 @@ export async function clipVideo(c) {
   an.fftSize = 256;
   const src = ac.createBufferSource();
   src.buffer = audio;
-  src.connect(an); an.connect(dest); an.connect(ac.destination);   // you hear it while it records
+  src.connect(an); an.connect(dest); if (!testMuted) an.connect(ac.destination);   // you hear it while it records
   const stream = new MediaStream([...cv.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
   const mime = pickMime();
   const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2_500_000, audioBitsPerSecond: 96_000 });

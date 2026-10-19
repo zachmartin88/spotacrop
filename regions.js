@@ -160,6 +160,8 @@ export class RegionLayer {
     const feats = fc.features.filter((f) => f.properties.at && f.properties.crop > 0)
       .sort((a, b) => b.properties.crop - a.properties.crop);
     const taken = [...this.reserved()];
+    // With the farm-belt banners showing, the state bubbles would double up the labels: let the belts speak.
+    if (level === 'states' && taken.length) return;
     for (const f of feats) {
       const p = f.properties;
       const t = this.focus != null ? (() => {

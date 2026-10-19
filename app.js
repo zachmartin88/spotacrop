@@ -8,13 +8,13 @@ import { cropColor, cropEmoji, shortName, TYPICAL_YIELD, CATEGORIES, categoryOf 
 import { planRoute, downloadRoute, loadRoutes, deleteRoute } from './offline.js';
 import { scanRoute, summarize, nearestStop } from './ahead.js';
 import { parcelAt } from './parcels.js';
-import { BeltLayer, BELTS, nextFact, randomFact } from './belts.js';
+import { BeltLayer, BELTS, nextFact } from './belts.js';
 import { fieldCard, albumCard, shareCanvas, placeName, countyName } from './share.js';
 import { recapCard, clipVideo, canMakeClip, shareBlob, canvasBlob } from './recap.js';
 import { loadAlbum, loadRarity, recordSighting, recordState, albumHtml, albumSummary, celebrate, rarityOf } from './album.js';
 import { fx, kernel, setKernelQuiet, settings, stats, saveStats, addMiles, checkBadges, badgesHtml, earned } from './fun.js';
 import { bingoCard, bingoSpot, bingoHtml, guessRound, satelliteHtml, cropOfTheDay, cropFacts, cropBlurb, countyFacts } from './games.js';
-import { SeasonLayer, season } from './season.js';
+import { SeasonLayer } from './season.js';
 import { showOnboarding, onboarded } from './onboarding.js';
 import { say, stop as stopVoice, phrase, hello, sample } from './voice.js';
 import * as talk from './talk.js';
@@ -604,7 +604,7 @@ async function openLeaderboard() {
   el.innerHTML = `<p class="predict">You're <b>#${j.rank ?? '–'}</b> of ${j.players} player${j.players === 1 ? '' : 's'}.</p>
     <ol class="lb">${j.top.map((p, i) => `<li class="${p.me ? 'me' : ''}"><span class="rk">${medal(i)}</span><span class="nm">${esc(p.name)}</span>
       <span class="mini">🃏${p.cards} 🗺️${p.states}</span><b>${p.score.toLocaleString()}</b></li>`).join('')}</ol>
-    <p class="fine">Collect cards, stamp states, earn badges and drive miles to climb. Scores come from each player's phone.</p>`;
+`;
 }
 
 // Milestone badges: check after anything that could earn one.
@@ -743,15 +743,14 @@ async function fillProgress() {
     const data = await getProgress(lat, lon, code);
     if (!data || !el.isConnected) continue;
     const prev = Object.fromEntries((data.progress.prev || []).map((r) => [r.what, r.pct]));
-    const rows = data.progress.now.map((r) => {
+    // Just the furthest-along stage (usually "Harvested"), not every stage plus condition.
+    const rows = data.progress.now.slice(-1).map((r) => {
       const delta = prev[r.what] != null && r.pct !== prev[r.what] ? ` <em>${r.pct - prev[r.what] > 0 ? '+' : ''}${r.pct - prev[r.what]}</em>` : '';
       return `<div class="prow"><span>${esc(r.what)}</span><i><b style="width:${Math.max(0, Math.min(100, r.pct))}%"></b></i><span>${r.pct}%${delta}</span></div>`;
     });
-    const cond = data.condition.now;
-    const ge = cond.filter((r) => r.what === 'good' || r.what === 'excellent').reduce((s, r) => s + r.pct, 0);
     const week = data.progress.week || data.condition.week;
-    el.innerHTML = `<div class="ptitle">${esc(data.state)} ${esc(data.commodity)} this week${week ? ` <span>(USDA, week ending ${esc(new Date(week + 'T12:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))})</span>` : ''}</div>
-      ${rows.join('')}${cond.length ? `<div class="pcond">Condition: <b>${ge}% good–excellent</b></div>` : ''}`;
+    el.innerHTML = `<div class="ptitle">${esc(data.state)} ${esc(data.commodity.toLowerCase())}${week ? ` <span>· USDA, ${esc(new Date(week + 'T12:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</span>` : ''}</div>
+      ${rows.join('')}`;
   }
 }
 
@@ -777,7 +776,6 @@ function detail(sideKey, s, layers, { stats = [], lat, lon, field = null } = {})
   switch (s.tier) {
     case 'live':
       badges.push(`<span class="badge live">Live · ${liveLabel}</span>`);
-      if (s.agrees) badges.push('<span class="badge agree">Matches past years</span>');
       break;
     case 'live-changed':
       badges.push(`<span class="badge live">Live · ${liveLabel}</span>`);
@@ -828,7 +826,6 @@ function detail(sideKey, s, layers, { stats = [], lat, lon, field = null } = {})
       <b>${x.code != null ? cropEmoji(x.code) || '•' : '–'}</b>
       <span class="nm">${x.code != null ? esc(shortName(x.code)) : 'No data'}</span></div>`).join('');
   const rot = rotationSummary(record);
-  if (field?.src === 'usda') badges.push(`<span class="badge soft">USDA field · ${record.length} yr record</span>`);
 
   return `<article class="detail">
       <div class="lbl">${SIDE_NAME[sideKey]}</div>
@@ -1111,13 +1108,14 @@ async function onMapTap(lat, lon) {
 function fieldStats(field, s) {
   if (!field) return [];
   const out = [[field.acres.toLocaleString(), field.acres === 1 ? 'acre' : 'acres']];
-  // An American football field with end zones is about 1.32 acres.
-  out.push([`≈${Math.max(1, Math.round(field.acres / 1.32)).toLocaleString()}`, 'football fields']);
   const y = TYPICAL_YIELD[s.code];
   if (y && isAg(s.code)) {
     const total = y[0] * field.acres;
     const v = total >= 1e6 ? `${(total / 1e6).toFixed(1)}M` : total >= 1e4 ? `${Math.round(total / 1e3)}k` : Math.round(total).toLocaleString();
-    out.push([`≈${v}`, `${y[1]} at a typical yield`]);
+    out.push([`≈${v}`, `${y[1]} (typical)`]);
+  } else {
+    // Nothing to harvest: size it in football fields instead (one with end zones is about 1.32 acres).
+    out.push([`≈${Math.max(1, Math.round(field.acres / 1.32)).toLocaleString()}`, 'football fields']);
   }
   return out;
 }
@@ -1200,30 +1198,25 @@ function openTrip() {
 
 function openMenu() {
   const routes = loadRoutes();
-  const t = state.trip;
+  // Short tiles, no subtitles: the menu should read at a glance.
+  const tile = (act, emoji, label) => `<button data-act="${act}" class="mtile"><span>${emoji}</span><b>${label}</b></button>`;
   showSheet('menu', `<nav class="menu">
     ${state.mode === 'drive'
-    ? '<button data-act="enddrive" class="menu-drive end"><b>🛑 End drive</b><span>Stop GPS and let the screen sleep</span></button>'
-    : '<button data-act="startdrive" class="menu-drive"><b>🚗 Start driving</b><span>Name the crops on your left and right</span></button>'}
-    <button data-act="voice"><b>🗣️ Voice & style</b><span>${esc(voiceSummary())}</span></button>
-    <button data-act="cotd"><b>⭐ Crop of the day</b><span>Today: ${cropEmoji(cropOfTheDay())} ${esc(prettyName(cropOfTheDay()))}</span></button>
-    <button data-act="bingo"><b>🎯 Road-trip bingo</b><span>Today's card · spot 3 in a row</span></button>
-    <button data-act="guess"><b>🧩 Guess the crop</b><span>Bird's-eye photo quiz${stats.guessBest ? ` · best streak ${stats.guessBest}` : ''}</span></button>
-    <button data-act="lb"><b>🏆 Leaderboard</b><span>See how you stack up</span></button>
-    <button data-act="album"><b>🃏 Crop Cards & badges</b><span>${plural(albumSummary(state.album).got, 'card')} · ${plural(albumSummary(state.album).states, 'state stamp')}</span></button>
-    <button data-act="trip"><b>Trip log</b><span>${t.total >= 50 ? `${miles(t.total)} mi so far` : 'Miles of each crop along your drive'}</span></button>
-    <button data-act="offline"><b>🧭 Plan a drive</b><span>What you'll pass on the way · save for offline</span></button>
-    <button data-act="routes"><b>Saved routes</b><span>${routes.length ? `${routes.length} saved` : 'None yet'}</span></button>
-    <button data-act="about"><b>About the data</b><span>Where each reading comes from</span></button>
-    <button data-act="tour"><b>📖 How Spot-a-Crop works</b><span>Replay the quick walkthrough</span></button>
+    ? '<button data-act="enddrive" class="menu-drive end"><b>🛑 End drive</b></button>'
+    : '<button data-act="startdrive" class="menu-drive"><b>🚗 Start driving</b></button>'}
+    <div class="mtiles">
+      ${tile('voice', '🗣️', 'Voice')}${tile('cotd', '⭐', 'Today’s crop')}${tile('bingo', '🎯', 'Bingo')}
+      ${tile('guess', '🧩', 'Guess it')}${tile('album', '🃏', 'Cards')}${tile('lb', '🏆', 'Leaders')}
+      ${tile('trip', '🛣️', 'Trip log')}${tile('offline', '🧭', 'Plan a drive')}${routes.length ? tile('routes', '📍', 'Saved routes') : ''}
+    </div>
     <div class="toggles">
       <button data-act="tog" data-k="sound" class="${settings.sound ? 'on' : ''}">🔊 Sounds</button>
       <button data-act="tog" data-k="buzz" class="${settings.buzz ? 'on' : ''}">📳 Buzz</button>
       <button data-act="tog" data-k="mascot" class="${settings.mascot ? 'on' : ''}">🌽 Kernel</button>
       <button data-act="tog" data-k="notes" class="${settings.notes ? 'on' : ''}" title="A banjo note when a crop changes while driving">🪕 Crop notes</button>
+      ${isNative ? `<button data-act="remind" class="${localGet('fs.remind') === '1' ? 'on' : ''}" title="A new crop to find every morning at 9">🔔 Daily crop</button>` : ''}
     </div>
-    ${isNative ? `<button data-act="remind"><b>🔔 Daily crop reminder</b><span>${localGet('fs.remind') === '1' ? 'On · 9 am, tap to turn off' : 'Off · a new crop to find every morning'}</span></button>` : ''}
-    <p class="menu-foot"><a href="https://zachmartin88.github.io/spotacrop/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="https://zachmartin88.github.io/spotacrop/support.html" target="_blank" rel="noopener">Help & feedback</a></p>
+    <p class="menu-foot"><a href="#" data-act="tour">How it works</a> · <a href="#" data-act="about">About the data</a> · <a href="https://zachmartin88.github.io/spotacrop/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="https://zachmartin88.github.io/spotacrop/support.html" target="_blank" rel="noopener">Help</a></p>
   </nav>`);
 }
 els.menuBtn.addEventListener('click', () => (state.sheet === 'menu' ? closeSheet() : openMenu()));
@@ -1233,7 +1226,7 @@ let downloadCtl = null;
 // Plan a drive: route → forecast of what you'll pass (ribbon + totals) → start it, or save it offline.
 function openOffline(prefillTo = '') {
   showSheet('offline', `<article class="detail"><div class="lbl">Plan a drive</div>
-    <p class="predict">See what you'll drive past, then start the drive or save it for no-signal stretches.${/Android/i.test(navigator.userAgent) ? ' You can also share a place from Google Maps to Spot-a-Crop.' : ''}</p>
+    <p class="predict">See what you'll pass on the way, or save it for no signal.${/Android/i.test(navigator.userAgent) ? ' Or share a place from Google Maps.' : ''}</p>
     <form class="route-form" id="routeForm">
       <label>From<input name="from" placeholder="Current location" autocomplete="off"></label>
       <label>To<input name="to" placeholder="City, town or address" required autocomplete="off" value="${esc(prefillTo)}"></label>
@@ -1326,6 +1319,7 @@ function openRoutes() {
 els.sheetBody.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-act]');
   if (!b) return;
+  if (b.tagName === 'A') e.preventDefault();
   const act = b.dataset.act;
   if (act === 'trip') openTrip();
   else if (act === 'tog') {
@@ -1616,7 +1610,7 @@ async function openVoice({ firstTime = false } = {}) {
   const haveRows = castList.filter((c) => have.includes(c.id));
   const usedMB = haveRows.reduce((t, c) => t + (vpack.sizeMB(c.id) || c.mb), 0);
   showSheet('voice', `<article class="detail voice-sheet"><div class="lbl">🗣️ Voice</div>
-    ${firstTime ? '<div class="vhello"><b>Pick your co-pilot 🎙️</b><span>Real character voices that call out the crops as you drive. Tap one to download it and hear it.</span></div>' : ''}
+    ${firstTime ? '<div class="vhello"><b>Pick your co-pilot 🎙️</b><span>They call out the crops as you drive.</span></div>' : ''}
     <div class="vtop">
       <button data-act="vtoggle" class="vswitch${state.voice ? ' on' : ''}"><span>Read crops out loud</span><b>${state.voice ? 'On' : 'Off'}</b></button>
       <button data-act="vtest" class="vtest">🔊 Hear it</button>
@@ -1625,7 +1619,7 @@ async function openVoice({ firstTime = false } = {}) {
     ${castList.length ? `<div class="vcast">${castList.map(card).join('')}</div>` : '<p class="predict">Couldn\'t load the cast. Check your connection.</p>'}
     <div class="vchips">${talk.MIXES.map((m) => `<button data-act="vwho" data-v="${m.id}" class="vchip${who === m.id ? ' picked' : ''}"${have.length < 2 ? ' disabled' : ''}>${m.emoji} ${m.name}</button>`).join('')}
       <button data-act="vwho" data-v="phone" class="vchip${!castList.some((c) => c.id === who) && !who.startsWith('mix') ? ' picked' : ''}">📱 Basic phone voice</button></div>
-    <p class="predict">Tap ▶ to hear anyone first. ${have.length < 2 ? 'Get two or more voices to mix them up (in Take turns they even talk to each other). ' : ''}Each voice is about ${Math.round(castList.reduce((t, c) => t + c.mb, 0) / (castList.length || 1))} MB, downloads once (Wi-Fi is best), then works with no signal.</p>
+    <p class="predict">Tap ▶ to hear anyone. Each voice is about ${Math.round(castList.reduce((t, c) => t + c.mb, 0) / (castList.length || 1))} MB and works offline once downloaded.</p>
     ${haveRows.length ? `<div class="vhave"><span>On this phone · ${Math.round(usedMB)} MB</span>${haveRows.map((c) => `<button data-act="vdel" data-v="${c.id}" aria-label="Remove ${esc(c.name)}">${c.emoji} ${esc(c.name)} <i>✕</i></button>`).join('')}</div>` : ''}
     <div class="lbl">Chattiness</div>
     <div class="vchips">${talk.CHATTY.map((c) => `<button data-act="vchat" data-v="${c.id}" class="vchip${talk.talk.chatty === c.id ? ' picked' : ''}">${c.emoji} ${c.name}</button>`).join('')}</div>
@@ -1807,11 +1801,9 @@ if (isNative) {
   if (localGet('fs.remind') === '1') scheduleDailyCrops(cropOfTheDay, (c) => `${cropEmoji(c)} ${prettyName(c)}`).catch(() => {});
 }
 {
-  // A different fun fact on the welcome card each visit.
-  const f = randomFact();
-  $('didYouKnow').innerHTML = `<b>${f.belt.emoji} Did you know?</b> ${esc(f.text)}`;
-  const [, sn] = season(), cotd = cropOfTheDay();
-  $('welcomeChips').innerHTML = `<button class="wchip" data-w="cotd">⭐ Crop of the day: ${cropEmoji(cotd)} ${esc(prettyName(cotd))}</button><span class="wchip plain">${sn.emoji} ${sn.name}</span>`;
+  // The welcome card stays short: a title, a line, two buttons and today's crop.
+  const cotd = cropOfTheDay();
+  $('welcomeChips').innerHTML = `<button class="wchip" data-w="cotd">⭐ Crop of the day: ${cropEmoji(cotd)} ${esc(prettyName(cotd))}</button>`;
   $('welcomeChips').addEventListener('click', (e) => { if (e.target.closest('[data-w=cotd]')) { enterExplore(null, true); openCropOfDay(); } });
   // Startup: the controls slide in with a little banjo hello. Browsers only allow sound after a first tap.
 document.body.classList.add('booting');

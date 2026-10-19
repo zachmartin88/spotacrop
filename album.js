@@ -87,7 +87,7 @@ export function albumSummary(album) {
 export function cardHtml(code, entry, { big = false } = {}) {
   const r = rarityOf(code);
   if (!entry) {
-    return `<div class="ccard locked" style="--r:${r.color}" title="${r.name} · not found yet"><span class="q">?</span><span class="nm">???</span><i class="gem"></i></div>`;
+    return `<div class="ccard locked" style="--r:${r.color}" title="${r.name} · not found yet"><span class="q">?</span><i class="gem"></i></div>`;
   }
   const s = stars(entry.n);
   return `<div class="ccard ${big ? 'big' : ''} r-${r.id}" style="--c:${cropColor(code)};--r:${r.color}" data-code="${code}">
@@ -115,7 +115,7 @@ export function albumHtml(album, statesList) {
       <div><b>${sum.setsDone}</b><span>sets done</span></div>
       <div><b>${sum.states}</b><span>state stamps</span></div>
     </div>
-    <p class="predict">Drive past a crop to collect its card. Rarer crops glow brighter. See it again to earn stars.</p>
+    <p class="predict">Drive past a crop to collect its card.</p>
     ${sets}
     <section class="cset"><header><span>🗺️ State stamps</span><b>${sum.states}/48</b></header><div class="stamps">${stamps}</div></section>
     <div class="sheet-actions"><button class="primary" data-act="sharealbum">✨ Share my album</button><button class="ghost" data-act="menu">Back</button></div>

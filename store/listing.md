@@ -17,8 +17,9 @@ Ever drive past miles of fields and wonder what's growing? Spot-a-Crop tells you
 Tap Start driving and the app names the crops on your left and right as you go: corn, soybeans, wheat, cotton, rice, orchards, vineyards and dozens more, anywhere in the lower 48.
 
 PICK A CO-PILOT
-Choose who calls out the crops. Earl the Southern farmer. Dot the sweet grandma. Buck the rodeo announcer. Penny the pun machine. Nigel the nature-documentary narrator. Detective Rye, Coach Hank, Brody the surfer, Delphine the drama queen, Kernel the corn kid, or calm, clear Sam. Each has over a thousand lines, so they rarely repeat. Or let them take turns.
+Choose who calls out the crops. Earl the Southern farmer. Dot the sweet grandma. Buck the rodeo announcer. Penny the pun machine. Nigel the nature-documentary narrator. Captain Cornbeard the pirate (port is left!). Auctioneer Al. Tyler the bored teenager. Zib Zorble the alien tourist. Mortimer Gourd the spooky storyteller. Detective Rye, Coach Hank, Brody the surfer, Delphine the drama queen, Kernel the corn kid, or calm, clear Sam. Hear any of them before you download. Each has over a thousand lines, so they rarely repeat. Or let them take turns, and they'll even talk to each other.
 • Works with your screen locked and your music playing
+• Seasonal lines, holiday lines, and a nudge if you're driving too fast
 • Downloads once, then works with no signal
 • Welcomes you to each state, cracks jokes on long stretches, and recaps your drive
 
@@ -30,6 +31,13 @@ TAP ANY FIELD
 • What was planted there in past years
 • This week's USDA harvest progress for that crop in your state
 • Fun facts about the crop
+
+AFTER THE DRIVE
+• A recap of your drive: miles, top crops, new cards
+• Turn a favorite line into a short video to share
+
+HOME SCREEN
+• Crop of the day widget
 
 ROAD-TRIP FUN
 • Collect a crop card for every crop you drive past. Rare ones glow.
