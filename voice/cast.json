@@ -32,9 +32,9 @@
    "name": "Penny",
    "emoji": "🤪",
    "blurb": "Bubbly pun machine",
-   "version": "ab29869c6a",
-   "mb": 20.2,
-   "lines": 1102
+   "version": "16d49b9a6d",
+   "mb": 14.9,
+   "lines": 1209
   },
   {
    "id": "kernel",
