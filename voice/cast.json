@@ -107,6 +107,15 @@
    "version": "37af8ee730",
    "mb": 14.2,
    "lines": 1141
+  },
+  {
+   "id": "zib",
+   "name": "Zib Zorble",
+   "emoji": "👽",
+   "blurb": "Alien tourist",
+   "version": "3a7532e75d",
+   "mb": 17.5,
+   "lines": 1138
   }
  ]
 }
