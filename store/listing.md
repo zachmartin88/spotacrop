@@ -70,12 +70,13 @@ crop,farm,field,corn,soybean,wheat,road trip,driving,agriculture,usda,harvest,bi
 ## Price
 Free
 
-## Screenshots (6.9" iPhone, 1320 × 2868, in this order)
+## Screenshots (6.9" iPhone, 1320 × 2868, in this order; made by `node tools/shots.mjs`)
 1. screenshots-6.9/1.jpg: driving mode, corn left and right, Earl talking
-2. screenshots-6.9/2.jpg: the voice cast
-3. screenshots-6.9/3.jpg: a tapped field with crop history and harvest progress
-4. screenshots-6.9/4.jpg: US map with the Corn Belt and Wheat Belt
+2. screenshots-6.9/2.jpg: the voice cast with ▶ previews
+3. screenshots-6.9/3.jpg: a tapped field with its crop history
+4. screenshots-6.9/4.jpg: U.S. map with the farm belts
 5. screenshots-6.9/5.jpg: road-trip bingo
+6. screenshots-6.9/6.jpg: the drive recap
 
 ## App Privacy answers ("nutrition label")
 Data collected:

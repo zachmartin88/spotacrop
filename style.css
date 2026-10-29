@@ -408,7 +408,6 @@ body.loading .loadbar {
 
 /* ================= share ================= */
 .sheet-actions.one { grid-template-columns: 1fr; padding: 0 18px 4px; margin-top: 0; }
-.share-btn { background: linear-gradient(90deg, #ffc53d, #ff8fc7 55%, #a98bff); color: #1a1022; }
 .card-preview { width: 100%; border-radius: 16px; display: block; box-shadow: 0 12px 30px -10px rgba(0,0,0,.7); }
 
 /* ================= crop cards album ================= */
