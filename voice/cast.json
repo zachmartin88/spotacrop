@@ -116,6 +116,15 @@
    "version": "790bdc47bb",
    "mb": 17.5,
    "lines": 1138
+  },
+  {
+   "id": "mortimer",
+   "name": "Mortimer Gourd",
+   "emoji": "🎃",
+   "blurb": "Spooky storyteller",
+   "version": "a6612765d0",
+   "mb": 17.8,
+   "lines": 1136
   }
  ]
 }
