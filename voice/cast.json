@@ -100,6 +100,15 @@
    "lines": 1093
   },
   {
+   "id": "al",
+   "name": "Auctioneer Al",
+   "emoji": "🔨",
+   "blurb": "Fast-talking auctioneer",
+   "version": "22799b07ae",
+   "mb": 17.0,
+   "lines": 1138
+  },
+  {
    "id": "tyler",
    "name": "Tyler",
    "emoji": "🙄",
