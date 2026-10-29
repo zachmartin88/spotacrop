@@ -1216,7 +1216,7 @@ function openMenu() {
       <button data-act="tog" data-k="notes" class="${settings.notes ? 'on' : ''}" title="A banjo note when a crop changes while driving">🪕 Crop notes</button>
       ${isNative ? `<button data-act="remind" class="${localGet('fs.remind') === '1' ? 'on' : ''}" title="A new crop to find every morning at 9">🔔 Daily crop</button>` : ''}
     </div>
-    <p class="menu-foot"><a href="#" data-act="tour">How it works</a> · <a href="#" data-act="about">About the data</a> · <a href="https://zachmartin88.github.io/spotacrop/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="https://zachmartin88.github.io/spotacrop/support.html" target="_blank" rel="noopener">Help</a></p>
+    <p class="menu-foot"><a href="#" data-act="tour">How it works</a> · <a href="#" data-act="about">About the data</a> · <a href="https://spotacrop.com/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="https://spotacrop.com/support.html" target="_blank" rel="noopener">Help</a></p>
   </nav>`);
 }
 els.menuBtn.addEventListener('click', () => (state.sheet === 'menu' ? closeSheet() : openMenu()));

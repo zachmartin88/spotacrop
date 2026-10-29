@@ -5,7 +5,7 @@ import { cropColor, cropEmoji } from './palette.js';
 import { isNative, Filesystem, Share, testMuted } from './native.js';
 
 const FONT = 'Inter, -apple-system, "Segoe UI", Roboto, sans-serif';
-const SITE = 'zachmartin88.github.io/spotacrop';
+const SITE = 'spotacrop.com';
 const GOLD = '#e8c170', INK = '#0f1218';
 
 function roundRect(ctx, x, y, w, h, r) {

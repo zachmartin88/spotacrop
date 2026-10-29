@@ -7,7 +7,7 @@ import { isNative, Filesystem, testMuted } from './native.js';
 // Capacitor.Plugins rather than registerPlugin, and looked up when first used.
 const clipPlayer = () => globalThis.Capacitor?.Plugins?.ClipPlayer;
 // The website serves the packs; the app fetches them from the website too.
-const BASE = globalThis.SPOTACROP_VOICE_BASE || (isNative ? 'https://zachmartin88.github.io/spotacrop/voice/' : 'voice/');   // override for local testing
+const BASE = globalThis.SPOTACROP_VOICE_BASE || (isNative ? 'https://spotacrop.com/voice/' : 'voice/');   // override for local testing
 
 const lget = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
 const lput = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* full */ } };

@@ -56,9 +56,9 @@ Drivers: use voice and keep your eyes on the road. Passengers can read the scree
 crop,farm,field,corn,soybean,wheat,road trip,driving,agriculture,usda,harvest,bingo,audio,voices
 
 ## URLs
-- Support URL: https://zachmartin88.github.io/spotacrop/support.html
-- Privacy Policy URL: https://zachmartin88.github.io/spotacrop/privacy.html
-- Marketing URL (optional): https://zachmartin88.github.io/spotacrop/
+- Support URL: https://spotacrop.com/support.html
+- Privacy Policy URL: https://spotacrop.com/privacy.html
+- Marketing URL (optional): https://spotacrop.com/
 
 ## Category
 - Primary: Travel

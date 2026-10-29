@@ -6,7 +6,7 @@ import { parseColor } from './fields.js';
 import { isNative, nativeShareImage } from './native.js';
 
 const W = 1080, H = 1350;
-const SITE = 'zachmartin88.github.io/spotacrop';
+const SITE = 'spotacrop.com';
 const FONT = 'Inter, -apple-system, "Segoe UI", Roboto, sans-serif';
 
 // ---------- where is this? (county lookup from the bundled outlines) ----------
