@@ -15,6 +15,7 @@ import { loadAlbum, loadRarity, recordSighting, recordState, albumHtml, albumSum
 import { fx, kernel, setKernelQuiet, settings, stats, saveStats, addMiles, checkBadges, badgesHtml, earned } from './fun.js';
 import { bingoCard, bingoSpot, bingoHtml, guessRound, satelliteHtml, cropOfTheDay, cropFacts, cropBlurb, countyFacts } from './games.js';
 import { SeasonLayer } from './season.js';
+import { imageryUrl, staticUrl } from './maps.js';
 import { showOnboarding, onboarded } from './onboarding.js';
 import { say, stop as stopVoice, phrase, hello, sample } from './voice.js';
 import * as talk from './talk.js';
@@ -84,16 +85,15 @@ for (const [name, z] of [['outline', 330], ['regions', 340], ['fields', 350], ['
   map.getPane(name).style.pointerEvents = name === 'regions' ? 'auto' : 'none';
 }
 
-const esri = (path, opts = {}) => L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${path}/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 19, ...opts });
+// Static basemap tiles are 512px, so they sit one zoom level down.
+const big = (style, opts = {}) => L.tileLayer(staticUrl(style), { maxZoom: 19, tileSize: 512, zoomOffset: -1, ...opts });
 const BASES = {
   dark: [
-    esri('Canvas/World_Dark_Gray_Base', { maxNativeZoom: 16, attribution: 'Esri' }),
-    esri('Canvas/World_Dark_Gray_Reference', { maxNativeZoom: 16, pane: 'labels' }),
+    big('arcgis/dark-gray', { attribution: 'Powered by Esri' }),
   ],
   satellite: [
-    esri('World_Imagery', { maxNativeZoom: 19, attribution: 'Esri, Maxar' }),
-    esri('Reference/World_Transportation', { pane: 'labels', opacity: 0.7 }),
-    esri('Reference/World_Boundaries_and_Places', { pane: 'labels', opacity: 0.85 }),
+    L.tileLayer(imageryUrl, { maxZoom: 19, maxNativeZoom: 19, attribution: 'Powered by Esri · Maxar' }),
+    big('arcgis/imagery/labels', { pane: 'labels', opacity: 0.9 }),
   ],
 };
 let base = localGet('fs.base') === 'satellite' ? 'satellite' : 'dark';

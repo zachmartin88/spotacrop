@@ -1,6 +1,7 @@
 // Copies the web app into www/ for the native (Capacitor) build. The website itself is served
 // straight from the repo by GitHub Pages; this only feeds the iPhone app.
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -22,4 +23,12 @@ const html = path.join(OUT, 'index.html');
 const page = fs.readFileSync(html, 'utf8');
 if (!page.includes('</head>')) throw new Error('index.html has no </head>');
 fs.writeFileSync(html, page.replace('</head>', '  <script src="capacitor.js"></script>\n</head>'));
+// The app's map key (the committed one only works on spotacrop.com, and the app sends no referrer).
+const KEY_FILE = path.join(os.homedir(), 'spotacrop-voices/secrets/esri.key');
+if (!fs.existsSync(KEY_FILE)) throw new Error(`missing ${KEY_FILE}: the app's Esri key`);
+const maps = path.join(OUT, 'maps.js');
+const src = fs.readFileSync(maps, 'utf8');
+const swapped = src.replace(/export const ESRI_KEY = '[^']*';/, `export const ESRI_KEY = '${fs.readFileSync(KEY_FILE, 'utf8').trim()}';`);
+if (swapped === src) throw new Error('maps.js: ESRI_KEY line not found');
+fs.writeFileSync(maps, swapped);
 console.log(`www/: ${FILES.length} files + ${DIRS.join(', ')}`);

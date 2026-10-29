@@ -2,6 +2,7 @@
 import { prettyName, isAg, NOTES, lookup, cropsData, slowNet } from './data.js';
 import { cropColor, cropEmoji, categoryOf } from './palette.js';
 import { countyName } from './share.js';
+import { imageryTile } from './maps.js';
 
 const get = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
 const put = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* full */ } };
@@ -107,7 +108,7 @@ export function satelliteHtml(lat, lon, z = 16) {
   const tx = Math.floor(x), ty = Math.floor(y), ox = (x - tx) * 256, oy = (y - ty) * 256;
   let tiles = '';
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-    tiles += `<img src="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${ty + dy}/${tx + dx}" style="left:${(dx + 1) * 256}px;top:${(dy + 1) * 256}px" alt="">`;
+    tiles += `<img src="${imageryTile(z, ty + dy, tx + dx)}" style="left:${(dx + 1) * 256}px;top:${(dy + 1) * 256}px" alt="">`;
   }
   return `<div class="sat"><div class="sat-tiles" style="--ox:${256 + ox}px;--oy:${256 + oy}px">${tiles}</div><i class="sat-ring"></i></div>`;
 }
