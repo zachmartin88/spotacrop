@@ -17,7 +17,7 @@ Ever drive past miles of fields and wonder what's growing? Spot-a-Crop tells you
 Tap Start driving and the app names the crops on your left and right as you go: corn, soybeans, wheat, cotton, rice, orchards, vineyards and dozens more, anywhere in the lower 48.
 
 PICK A CO-PILOT
-Choose who calls out the crops. Earl the Southern farmer. Dot the sweet grandma. Buck the rodeo announcer. Penny the pun machine. Nigel the nature-documentary narrator. Captain Cornbeard the pirate (port is left!). Auctioneer Al. Tyler the bored teenager. Zib Zorble the alien tourist. Mortimer Gourd the spooky storyteller. Detective Rye, Coach Hank, Brody the surfer, Delphine the drama queen, Kernel the corn kid, or calm, clear Sam. Hear any of them before you download. Each has over a thousand lines, so they rarely repeat. Or let them take turns, and they'll even talk to each other.
+Choose who calls out the crops. Earl the Southern farmer. Dot the sweet grandma. Buck the rodeo announcer. Penny the pun machine. Nigel the nature-documentary narrator. Zib Zorble the alien tourist. Tyler the bored teenager. Detective Rye, Coach Hank, Brody the surfer, Delphine the drama queen, Kernel the corn kid, or calm, clear Sam. More characters are on the way. Hear any of them before you download. Each has over a thousand lines, so they rarely repeat. Or let them take turns, and they'll even talk to each other.
 • Works with your screen locked and your music playing
 • Seasonal lines, holiday lines, and a nudge if you're driving too fast
 • Downloads once, then works with no signal
