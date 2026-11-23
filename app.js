@@ -21,6 +21,7 @@ import { say, stop as stopVoice, phrase, hello, sample } from './voice.js';
 import * as talk from './talk.js';
 import * as vpack from './voicepack.js';
 import { isNative, KeepAwake, StatusBar, Share, App as NativeApp, startBackgroundLocation, stopBackgroundLocation, nativePositionOnce, scheduleDailyCrops, cancelDailyCrops } from './native.js';
+const APP_STORE = 'https://apps.apple.com/us/app/spot-a-crop/id6819522747';
 
 const $ = (id) => document.getElementById(id);
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -1216,7 +1217,7 @@ function openMenu() {
       <button data-act="tog" data-k="notes" class="${settings.notes ? 'on' : ''}" title="A banjo note when a crop changes while driving">🪕 Crop notes</button>
       ${isNative ? `<button data-act="remind" class="${localGet('fs.remind') === '1' ? 'on' : ''}" title="A new crop to find every morning at 9">🔔 Daily crop</button>` : ''}
     </div>
-    <p class="menu-foot"><a href="#" data-act="tour">How it works</a> · <a href="#" data-act="about">About the data</a> · <a href="https://spotacrop.com/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="https://spotacrop.com/support.html" target="_blank" rel="noopener">Help</a></p>
+    <p class="menu-foot"><a href="#" data-act="tour">How it works</a> · <a href="#" data-act="about">About the data</a> · <a href="https://spotacrop.com/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="https://spotacrop.com/support.html" target="_blank" rel="noopener">Help</a>${isNative ? '' : ` · <a href="${APP_STORE}" target="_blank" rel="noopener">iPhone app</a>`}</p>
   </nav>`);
 }
 els.menuBtn.addEventListener('click', () => (state.sheet === 'menu' ? closeSheet() : openMenu()));
@@ -1803,7 +1804,8 @@ if (isNative) {
 {
   // The welcome card stays short: a title, a line, two buttons and today's crop.
   const cotd = cropOfTheDay();
-  $('welcomeChips').innerHTML = `<button class="wchip" data-w="cotd">⭐ Crop of the day: ${cropEmoji(cotd)} ${esc(prettyName(cotd))}</button>`;
+  $('welcomeChips').innerHTML = `<button class="wchip" data-w="cotd">⭐ Crop of the day: ${cropEmoji(cotd)} ${esc(prettyName(cotd))}</button>`
+    + (isNative ? '' : `<a class="wchip plain" href="${APP_STORE}" target="_blank" rel="noopener">📱 Get the iPhone app</a>`);
   $('welcomeChips').addEventListener('click', (e) => { if (e.target.closest('[data-w=cotd]')) { enterExplore(null, true); openCropOfDay(); } });
   // Startup: the controls slide in with a little banjo hello. Browsers only allow sound after a first tap.
 document.body.classList.add('booting');
